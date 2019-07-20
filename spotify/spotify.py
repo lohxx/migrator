@@ -27,10 +27,6 @@ scopes = [
     'playlist-modify-private'
 ]
 
-# TODO:
-    # 1. Adicionar tabela para salvar o access_token, refresh_token e o code
-    # 2. Criar flags para identificar o deezer e o spotify
-
 
 @cli.command()
 def auth():
