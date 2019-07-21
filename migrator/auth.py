@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
+
 import os
 
-from flask import Flask
 from flask import request
 
-app = Flask(__name__)
+from migrator.migrator import app
+
 
 @app.route('/callback')
 def callback():
@@ -12,8 +14,3 @@ def callback():
         print(request.args['code'])
 
     return 'code'
-
-
-
-if __name__ == '__main__':
-    app.run()

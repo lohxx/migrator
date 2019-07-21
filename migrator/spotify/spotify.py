@@ -20,16 +20,10 @@ spotify = OAuth2Service(
     base_url='https://api.spotify.com/v1/'
 )
 
-scopes = [
-    'playlist-modify-public',
-    'playlist-read-collaborative',
-    'playlist-read-private',
-    'playlist-modify-private'
-]
 
 # TODO:
     # 1. Adicionar tabela para salvar o access_token, refresh_token e o code
-    # 2. Criar flags para identificar o deezer e o spotify
+    # 2. Criar flags para identificar o deezer, spotify e o youtube
 
 @cli.command()
 def auth():
@@ -38,7 +32,6 @@ def auth():
         'grant_type': 'authorization_code',
         'redirect_uri': 'http://localhost:5000/callback'
     }
-    pdb.set_trace()
  
     session = spotify.get_auth_session(data=data, decoder=json.loads)
 
@@ -49,6 +42,12 @@ def auth():
 
 @cli.command()
 def authorization_url():
+    scopes = [
+        'playlist-modify-public',
+        'playlist-read-collaborative',
+        'playlist-read-private',
+        'playlist-modify-private'
+    ]
     authorize_url = spotify.get_authorize_url(**{
         'response_type': 'code',
         'redirect_uri': 'http://localhost:5000/callback',
