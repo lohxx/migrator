@@ -7,6 +7,7 @@ import click
 
 from rauth import OAuth2Service
 
+
 @click.group()
 def cli():
     pass

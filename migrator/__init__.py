@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-import os
 import sys
+import os
 
-from auth import *
-from flask import Flask
-
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
+from flask import Flask, request
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/tokens.db'
+db = SQLAlchemy(app)
 
 
-if __name__ == '__main__':
-    app.run()
+sys.path.append(os.getcwd())
