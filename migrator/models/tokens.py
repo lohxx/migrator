@@ -7,12 +7,12 @@ YOUTUBE = 3
 
 
 def save_tokens(response):
-    user_tokens = Tokens.query.first()
+    user_tokens = Tokens.query.filter_by(service=SPOTIFY).first()
 
     if user_tokens:
         user_tokens.save(response)
         return
-    
+
     user_tokens = Tokens(
         refresh_token=response['refresh_token'],
         access_token=response['access_token'],
