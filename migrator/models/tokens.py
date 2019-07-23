@@ -1,4 +1,5 @@
 import sqlite3
+
 from migrator import db
 
 DEEZER = 1
@@ -14,10 +15,10 @@ def save_tokens(response):
         return
 
     user_tokens = Tokens(
-        refresh_token=response['refresh_token'],
-        access_token=response['access_token'],
-        service=service,
-        code=response['code']
+        code=response.get('code'),
+        refresh_token=response.get('refresh_token'),
+        access_token=response.get('access_token'),
+        # service=service,
     )
 
 
@@ -33,4 +34,3 @@ class Tokens(db.Model):
         self.refresh_token = response.get('refresh_token')
         db.session.add(self)
         db.session.commit()
-
