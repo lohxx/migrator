@@ -1,9 +1,8 @@
+import functools
 import json
 import os
 import pdb
 import webbrowser
-
-import click
 
 from rauth import OAuth2Service
 
@@ -11,21 +10,29 @@ from migrator import app
 from migrator.services.auth import ServiceAuth
 
 
-@click.group()
-def cli():
-    pass
+def check_if_token_has_expired(f):
+    @functools.wraps
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            # refresca o access token
+            pass
 
 
 class SpotifyService(ServiceAuth):
     def __init__(self):
-        self.oauth = OAuth2Service(
-            name='spotify',
-            client_id=os.environ['SPOTIFY_CLIENT_ID'],
-            client_secret=os.environ['SPOTIFY_CLIENT_SECRET'],
-            authorize_url='https://accounts.spotify.com/authorize',
-            access_token_url='https://accounts.spotify.com/api/token',
-            base_url='https://api.spotify.com/v1/'
-        )
+        try:
+            self.oauth = OAuth2Service(
+                name='spotify',
+                base_url='https://api.spotify.com/v1',
+                client_id=os.environ['SPOTIFY_CLIENT_ID'],
+                client_secret=os.environ['SPOTIFY_CLIENT_SECRET'],
+                authorize_url='https://accounts.spotify.com/authorize',
+                access_token_url='https://accounts.spotify.com/api/token'
+            )
+        except KeyError as e:
+            app.logger.exception(e)
 
         self.playlist_service = None
 
@@ -40,28 +47,63 @@ class SpotifyService(ServiceAuth):
             'response_type': 'code',
             'redirect_uri': 'http://localhost:5000/callback',
             'scope': ', '.join(scopes)
-        })
+         })
 
         app.logger.info(authorize_url)
         webbrowser.open(authorize_url)
 
         return self
 
-    def get_access_token(self):
+    def paginate(self):
+        pass
+
+    @property
+    def session(self):
+        # achar uma maneira de sempre checar se o token expirou antes de fazer um request
         data = {
             'code': os.environ['SPOTIFY_CODE'],
             'grant_type': 'authorization_code',
             'redirect_uri': 'http://localhost:5000/callback'
         }
 
-        session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+        try:
+            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+        except Exception as e:
+            data = {
+                'grant_type': 'refresh_token',
+                'refresh_token': os.environ['refresh_token']
+            }
+            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+            app.logger.info(session.access_token_response.json())
 
         response = session.access_token_response.json()
+        return session
+
+    def get_playlist_tracks(self, tracks_url):
+        tracks = self.session.get('v1/'+'/'.join(tracks_url.split('/')[-3:]))
+
+        if tracks.status_code != 200:
+            raise Exception(tracks.text)
+
+    def get_playlist(self, name):
+        playlists = self.session.get('v1/me/playlists')
+
+        if playlists.status_code != 200:
+            raise Exception(playlists.text)
+
+        playlists = playlists.json()
+
+        for playlist in playlists['items']:
+            if playlist['name'] == name:
+                self.get_playlist_tracks(playlist['tracks']['href'])
+                break
+        else:
+            # informar ao usuario que nao encontramos nenhum playlist com o nome dado por ele...
+            pass
+
 
 # TODO:
     # 1. Adicionar tabela para salvar o access_token, refresh_token e o code
     # 2. Criar flags para identificar o deezer, spotify e o youtube
-
-
-if __name__ == '__main__':
-    cli()
+    # 3. Colocar o sqlite para funcionar
+    # 4. Separara a autenticação das buscas?

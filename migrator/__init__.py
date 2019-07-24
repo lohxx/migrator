@@ -20,10 +20,10 @@ def callback():
     from models import tokens
 
     if request.args.get('code'):
-        user_tokens = tokens.save_tokens(request)
-        tokens.Tokens.query.filter_by(
-            service=tokens.SPOTIFY).one()
-        user_tokens.save(request)
+        # user_tokens = tokens.save_tokens(request)
+        # tokens.Tokens.query.filter_by(
+        #     service=tokens.SPOTIFY).one()
+        # user_tokens.save(request)
 
         print(request.args['code'])
 
@@ -31,4 +31,4 @@ def callback():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
