@@ -2,13 +2,16 @@ import pdb
 import pprint
 import click
 
+
+from migrator.services.deezer import DeezerService
 from migrator.services.spotify import SpotifyService
+from migrator.services.youtube import YoutubeService
 
 
 SERVICES = {
+    'deezer': DeezerService,
     'spotify': SpotifyService,
-    'deezer': None,
-    'youtube': None
+    'youtube': YoutubeService,
 }
 
 options = SERVICES.keys()
