@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import sys
 import os
 
@@ -10,7 +11,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/tokens.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
+logger = logging.getLogger()
 
 sys.path.append(os.getcwd())
 

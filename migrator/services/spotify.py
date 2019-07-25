@@ -1,23 +1,16 @@
-import functools
+import itertools
 import json
 import os
 import pdb
 import webbrowser
 
+import click
+
 from rauth import OAuth2Service
+
 
 from migrator import app
 from migrator.services.auth import ServiceAuth
-
-
-def check_if_token_has_expired(f):
-    @functools.wraps
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            # refresca o access token
-            pass
 
 
 class SpotifyService(ServiceAuth):
@@ -33,8 +26,6 @@ class SpotifyService(ServiceAuth):
             )
         except KeyError as e:
             app.logger.exception(e)
-
-        self.playlist_service = None
 
     def autorization_url(self):
         scopes = [
@@ -74,32 +65,50 @@ class SpotifyService(ServiceAuth):
                 'refresh_token': os.environ['refresh_token']
             }
             session = self.oauth.get_auth_session(data=data, decoder=json.loads)
-            app.logger.info(session.access_token_response.json())
+            click.echo(session.access_token_response.json())
 
         response = session.access_token_response.json()
         return session
 
-    def get_playlist_tracks(self, tracks_url):
-        tracks = self.session.get('v1/'+'/'.join(tracks_url.split('/')[-3:]))
+    def request(self, endpoint, page=0, limit=30):
+        response = self.session.get(endpoint)
 
-        if tracks.status_code != 200:
-            raise Exception(tracks.text)
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
+
+    def get_playlist_tracks(self, tracks_url):
+        click.echo('Buscando as musicas...')
+
+        tracks = []
+        response = self.request(f"v1/{'/'.join(tracks_url.split('/')[-3:])}")
+
+        for track in response['items']:
+            tracks.append({
+                'name': track['track']['name'],
+                'artists': list(
+                    map(
+                        lambda artists: artists['name'],
+                        track['track']['artists']
+                    )
+                )
+            })
+
+        return tracks
 
     def get_playlist(self, name):
-        playlists = self.session.get('v1/me/playlists')
-
-        if playlists.status_code != 200:
-            raise Exception(playlists.text)
-
-        playlists = playlists.json()
+        click.echo('Procurando a playlist...')
+        playlists = self.request('v1/me/playlists')
 
         for playlist in playlists['items']:
             if playlist['name'] == name:
-                self.get_playlist_tracks(playlist['tracks']['href'])
-                break
+                click.echo('Playlist encotrada!')
+                tracks = self.get_playlist_tracks(playlist['tracks']['href'])
+
+                return {'playlist': name, 'tracks': tracks}
         else:
-            # informar ao usuario que nao encontramos nenhum playlist com o nome dado por ele...
-            pass
+            click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
 
 
 # TODO:

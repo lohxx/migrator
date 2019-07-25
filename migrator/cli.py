@@ -1,3 +1,5 @@
+import pdb
+import pprint
 import click
 
 from migrator.services.spotify import SpotifyService
@@ -9,7 +11,7 @@ SERVICES = {
     'youtube': None
 }
 
-options = ['spotify', 'deezer', 'youtube']
+options = SERVICES.keys()
 
 
 @click.group()
@@ -20,8 +22,9 @@ def cli():
 def execute_copy(origin, destination, playlist_name):
     # checar se já existe os dados para autenticação antes de solicitar o browser
     origin_service = origin()
-    origin_service.get_playlist(playlist_name)
-
+    playlist = origin_service.get_playlist(playlist_name)
+    pprint.pprint(playlist)
+    #pdb.set_trace()
 
 @cli.command()
 @click.option('--playlist-name', required=True)
