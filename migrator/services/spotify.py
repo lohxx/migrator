@@ -102,10 +102,9 @@ class SpotifyPlaylists(Playlist):
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
 
 
-class SpotifyService(ServiceAuth):
+class SpotifyService():
     def __init__(self):
         self.oauth = SpotifyAuth()
-        # rodar a logica que autentica o usuario
         self.playlists = SpotifyPlaylists()
 
     def request(self, endpoint, page=0, limit=30):
@@ -116,9 +115,11 @@ class SpotifyService(ServiceAuth):
 
         return response.json()
 
+    def copy_playlist(self, playlist):
+        pass
 
 # TODO:
     # 1. Adicionar tabela para salvar o access_token, refresh_token e o code
-    # 2. Criar flags para identificar o deezer, spotify e o youtube
+    # 2. Criar flags para identificar o deezer, spotify e o youtube - DONE
     # 3. Colocar o sqlite para funcionar
-    # 4. Separara a autenticação das buscas?
+    # 4. Separara a autenticação das buscas? DONE

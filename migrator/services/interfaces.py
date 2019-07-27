@@ -25,3 +25,8 @@ class Playlist:
 
     def get_playlist(self):
         raise NotImplementedError
+
+
+class Service:
+    def copy_playlist(self, playlist):
+        raise NotImplementedError
