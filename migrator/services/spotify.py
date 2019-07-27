@@ -43,20 +43,27 @@ class SpotifyAuth(ServiceAuth):
 
     @property
     def session(self):
-        data = {
-            'code': os.environ['SPOTIFY_CODE'],
+        request_args = {
             'grant_type': 'authorization_code',
             'redirect_uri': 'http://localhost:5000/callback'
         }
 
         try:
-            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+            request_args.update({'code': os.environ['SPOTIFY_CODE']})
+        except KeyError as e:
+            self.autorization_url()
+            request_args.update({'code': os.environ['SPOTIFY_CODE']})
+
+        try:
+            session = self.oauth.get_auth_session(
+                data=request_args, decoder=json.loads)
         except Exception as e:
             data = {
                 'grant_type': 'refresh_token',
                 'refresh_token': os.environ['refresh_token']
             }
-            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+            session = self.oauth.get_auth_session(
+                data=request_args, decoder=json.loads)
             click.echo(session.access_token_response.json())
 
         response = session.access_token_response.json()
