@@ -1,34 +1,30 @@
 #!/usr/bin/env python3
-import logging
-import sys
 import os
+import sys
 
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 
-
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/tokens.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-logger = logging.getLogger()
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/migrator.db'
 
-sys.path.append(os.getcwd())
+db = SQLAlchemy(app)
+db.init_app(app)
 
 
 @app.route('/callback')
 def callback():
-    from models import tokens
+    from migrator.services.tokens import save_tokens
 
     if request.args.get('code'):
+        import pdb; pdb.set_trace()
+        save_tokens(1, request.args)
         # user_tokens = tokens.save_tokens(request)
         # tokens.Tokens.query.filter_by(
         #     service=tokens.SPOTIFY).one()
         # user_tokens.save(request)
-
-        print(request.args['code'])
-
-    return 'code'
+    return 'Codigo salvo com sucesso'
 
 
 if __name__ == '__main__':

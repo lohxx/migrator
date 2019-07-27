@@ -1,28 +1,57 @@
 import json
 import os
 
-# Salvar os tokens no filesystem é a melhor opção???
+import click
+import sqlalchemy.orm.exc as sq_exceptions
+
+from migrator import db
 
 
-class TokensManager:
-    def __init__(self, service):
-        self.service = service
-        self.code = None
-        self.refresh_token = None
-        self.access_token = None
+def save_tokens(service, tokens):
+    args = {}
+    for key, value in tokens.items():
+        if hasattr(TokensManager, key):
+            args.update({key: value})
 
-    def save_tokens(self, response):
-        with open(f'{self.service}.json', 'w') as f:
-            json.dumps(response, f)
+    args.update({'service': service})
+    obj = update_or_create(service, args)
 
-    def retrieve_tokens(self):
-        access_token, refresh_token = None, None
-        with open(f'{self.service}.json', 'r') as f:
-            response = json.load(f)
-            self.access_token = response.get('access_token')
-            self.refresh_token = response.get('refresh_token')
+    try:
+        db.session.add(obj)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        click.echo(e)
 
-        return self.access_token, self.refresh_token
+    import pdb; pdb.set_trace()
 
-    def is_first_auth(self):
-        return f'{service}.json' in os.listdir(os.getcwd())
+
+def update_or_create(service, kwargs):
+
+    try:
+        obj = TokensManager.query.filter_by(
+            service=service).one()
+
+        for attr, value in kwargs.items():
+            # atualiza os valores já existentes
+            setattr(obj, attr, value)
+
+        return obj
+    except sq_exceptions.NoResultFound as e:
+        return TokensManager(**kwargs)
+
+
+def get_tokens(service):
+    return TokensManager.query.filter_by(
+        service=service).one()
+
+
+class TokensManager(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String, nullable=True)
+    access_token = db.Column(db.String, nullable=True)
+    refresh_token = db.Column(db.String, nullable=True)
+    service = db.Column(db.Integer)
+
+
+#db.create_all()

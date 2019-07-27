@@ -7,9 +7,13 @@ import webbrowser
 import click
 
 from rauth import OAuth2Service
+import sqlalchemy.orm.exc as sq_exceptions
 
 from migrator import app
+from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
+
+SERVICE_CODE = 1
 
 
 class SpotifyAuth(ServiceAuth):
@@ -48,11 +52,12 @@ class SpotifyAuth(ServiceAuth):
             'redirect_uri': 'http://localhost:5000/callback'
         }
 
+        pdb.set_trace()
         try:
-            request_args.update({'code': os.environ['SPOTIFY_CODE']})
-        except KeyError as e:
+            request_args.update({'code': get_tokens(SERVICE_CODE).code})
+        except sq_exceptions.NoResultFound as e:
             self.autorization_url()
-            request_args.update({'code': os.environ['SPOTIFY_CODE']})
+            request_args.update({'code': get_tokens(SERVICE_CODE).code})
 
         try:
             session = self.oauth.get_auth_session(
@@ -67,14 +72,26 @@ class SpotifyAuth(ServiceAuth):
             click.echo(session.access_token_response.json())
 
         response = session.access_token_response.json()
+        save_tokens('spotify', response)
         return session
 
 
 class SpotifyPlaylists(Playlist):
-    def __init__(self, session):
+    def __init__(self):
         self.oauth = SpotifyAuth()
 
-    def get_playlist_tracks(self, tracks_url):
+    def request(self, endpoint, page=0, limit=30):
+        response = self.oauth.session.get(endpoint)
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
+
+    def copy(self, playlist):
+        pass
+
+    def get_tracks(self, tracks_url):
         click.echo('Buscando as musicas...')
 
         tracks = []
@@ -106,21 +123,6 @@ class SpotifyPlaylists(Playlist):
         else:
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
 
-
-class SpotifyService():
-    def __init__(self):
-        self.playlists = SpotifyPlaylists()
-
-    def request(self, endpoint, page=0, limit=30):
-        response = self.session.get(endpoint)
-
-        if response.status_code != 200:
-            raise Exception(response.text)
-
-        return response.json()
-
-    def copy_playlist(self, playlist):
-        pass
 
 # TODO:
     # 1. Adicionar tabela para salvar o access_token, refresh_token e o code

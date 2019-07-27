@@ -4,13 +4,13 @@ import click
 
 
 from migrator.services.deezer import DeezerService
-from migrator.services.spotify import SpotifyService
+from migrator.services.spotify import SpotifyPlaylists
 from migrator.services.youtube import YoutubeService
 
 
 SERVICES = {
     'deezer': DeezerService,
-    'spotify': SpotifyService,
+    'spotify': SpotifyPlaylists,
     'youtube': YoutubeService
 }
 
@@ -24,7 +24,7 @@ def cli():
 
 def execute_copy(origin, destination, playlist_name):
     origin_service = origin()
-    playlist = origin_service.playlists.get(playlist_name)
+    playlist = origin_service.get(playlist_name)
     pprint.pprint(playlist)
 
 

@@ -1,6 +1,6 @@
-from migrator.services.auth import ServiceAuth
+# from migrator.services.auth import ServiceAuth
 
 
-class YoutubeService(ServiceAuth):
+class YoutubeService():
     def __init__(self):
         self.oauth = None

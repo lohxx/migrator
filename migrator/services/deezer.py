@@ -1,8 +1,8 @@
-import rauth
+# import rauth
 
-from migrator.services.auth import ServiceAuth
+# from migrator.services.auth import ServiceAuth
 
 
-class DeezerService(ServiceAuth):
+class DeezerService():
     def __init__(self):
         self.oauth = None
