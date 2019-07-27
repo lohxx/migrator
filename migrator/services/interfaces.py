@@ -17,13 +17,10 @@ class Playlist:
     def __init__(self, name):
         self.name = name
 
-    def __call__(self):
-        return self.get_playlist_tracks()
-
-    def get_playlist_tracks(self):
+    def get_tracks(self):
         raise NotImplementedError
 
-    def get_playlist(self):
+    def get(self):
         raise NotImplementedError
 
 

@@ -8,10 +8,8 @@ import click
 
 from rauth import OAuth2Service
 
-
 from migrator import app
-from migrator.services.interfaces import ServiceAuth
-from migrator.services.interfaces import Playlist
+from migrator.services.interfaces import Playlist, ServiceAuth
 
 
 class SpotifyAuth(ServiceAuth):
@@ -67,7 +65,7 @@ class SpotifyAuth(ServiceAuth):
 
 class SpotifyPlaylists(Playlist):
     def __init__(self, session):
-        self.session = session
+        self.oauth = SpotifyAuth()
 
     def get_playlist_tracks(self, tracks_url):
         click.echo('Buscando as musicas...')
@@ -88,14 +86,14 @@ class SpotifyPlaylists(Playlist):
 
         return tracks
 
-    def get_playlist(self, name):
+    def get(self, name):
         click.echo('Procurando a playlist...')
         playlists = self.request('v1/me/playlists')
 
         for playlist in playlists['items']:
             if playlist['name'] == name:
                 click.echo('Playlist encotrada!')
-                tracks = self.get_playlist_tracks(playlist['tracks']['href'])
+                tracks = self.get_tracks(playlist['tracks']['href'])
 
                 return {'playlist': name, 'tracks': tracks}
         else:
@@ -104,7 +102,6 @@ class SpotifyPlaylists(Playlist):
 
 class SpotifyService():
     def __init__(self):
-        self.oauth = SpotifyAuth()
         self.playlists = SpotifyPlaylists()
 
     def request(self, endpoint, page=0, limit=30):
