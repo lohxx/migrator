@@ -1,6 +1,3 @@
-# migrator
- A service that helps migrate playlists of a streaming service to another
-
 
 Usage: [OPTIONS] COMMAND [ARGS]...
 
