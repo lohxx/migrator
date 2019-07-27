@@ -10,22 +10,20 @@ from rauth import OAuth2Service
 
 
 from migrator import app
-from migrator.services.auth import ServiceAuth
+from migrator.services.interfaces import ServiceAuth
+from migrator.services.interfaces import Playlist
 
 
-class SpotifyService(ServiceAuth):
+class SpotifyAuth(ServiceAuth):
     def __init__(self):
-        try:
-            self.oauth = OAuth2Service(
-                name='spotify',
-                base_url='https://api.spotify.com/v1',
-                client_id=os.environ['SPOTIFY_CLIENT_ID'],
-                client_secret=os.environ['SPOTIFY_CLIENT_SECRET'],
-                authorize_url='https://accounts.spotify.com/authorize',
-                access_token_url='https://accounts.spotify.com/api/token'
-            )
-        except KeyError as e:
-            app.logger.exception(e)
+        self.oauth = OAuth2Service(
+            name='spotify',
+            base_url='https://api.spotify.com/v1',
+            client_id=os.environ['SPOTIFY_CLIENT_ID'],
+            client_secret=os.environ['SPOTIFY_CLIENT_SECRET'],
+            authorize_url='https://accounts.spotify.com/authorize',
+            access_token_url='https://accounts.spotify.com/api/token'
+        )
 
     def autorization_url(self):
         scopes = [
@@ -45,12 +43,8 @@ class SpotifyService(ServiceAuth):
 
         return self
 
-    def paginate(self):
-        pass
-
     @property
     def session(self):
-        # achar uma maneira de sempre checar se o token expirou antes de fazer um request
         data = {
             'code': os.environ['SPOTIFY_CODE'],
             'grant_type': 'authorization_code',
@@ -70,13 +64,10 @@ class SpotifyService(ServiceAuth):
         response = session.access_token_response.json()
         return session
 
-    def request(self, endpoint, page=0, limit=30):
-        response = self.session.get(endpoint)
 
-        if response.status_code != 200:
-            raise Exception(response.text)
-
-        return response.json()
+class SpotifyPlaylists(Playlist):
+    def __init__(self, session):
+        self.session = session
 
     def get_playlist_tracks(self, tracks_url):
         click.echo('Buscando as musicas...')
@@ -109,6 +100,21 @@ class SpotifyService(ServiceAuth):
                 return {'playlist': name, 'tracks': tracks}
         else:
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+
+
+class SpotifyService(ServiceAuth):
+    def __init__(self):
+        self.oauth = SpotifyAuth()
+        # rodar a logica que autentica o usuario
+        self.playlists = SpotifyPlaylists()
+
+    def request(self, endpoint, page=0, limit=30):
+        response = self.session.get(endpoint)
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
 
 
 # TODO:
