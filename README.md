@@ -1,4 +1,4 @@
-### Services suported
+### Supported services
 - Spotify
 - Deezer
 - Youtube
