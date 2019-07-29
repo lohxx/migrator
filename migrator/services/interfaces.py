@@ -29,7 +29,3 @@ class Playlist(ABC):
     def get(self):
         pass
 
-
-class Service:
-    def copy_playlist(self, playlist):
-        pass
