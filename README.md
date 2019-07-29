@@ -4,8 +4,9 @@
 - Youtube
 
 
+### Usage
 
-Usage: [OPTIONS] COMMAND [ARGS]...
+[OPTIONS] COMMAND [ARGS]...
 
 Commands:
   copy
