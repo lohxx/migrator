@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
-from flask import request
+from abc import ABC, abstractmethod
 
 
-class ServiceAuth:
+class ServiceAuth(ABC):
+    @abstractmethod
     def session(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def autorization_url(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get_access_token(self):
-        raise NotImplementedError
+        pass
 
 
-class Playlist:
+class Playlist(ABC):
+    @abstractmethod
     def __init__(self, name):
         self.name = name
 
+    @abstractmethod
     def get_tracks(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get(self):
-        raise NotImplementedError
+        pass
 
 
 class Service:
     def copy_playlist(self, playlist):
-        raise NotImplementedError
+        pass

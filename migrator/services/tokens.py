@@ -43,7 +43,10 @@ def update_or_create(service, kwargs):
 
 def get_tokens(service):
     return TokensManager.query.filter_by(
-        service=service).one()
+        service=service
+    ).order_by(
+        TokensManager.id.desc()
+    ).one()
 
 
 class TokensManager(db.Model):
@@ -52,6 +55,3 @@ class TokensManager(db.Model):
     access_token = db.Column(db.String, nullable=True)
     refresh_token = db.Column(db.String, nullable=True)
     service = db.Column(db.Integer)
-
-
-#db.create_all()

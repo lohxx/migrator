@@ -35,15 +35,20 @@ class SpotifyAuth(ServiceAuth):
             'playlist-modify-private'
         ]
         authorize_url = self.oauth.get_authorize_url(**{
-            'response_type': 'code',
+            'response_type': 'token',
             'redirect_uri': 'http://localhost:5000/callback',
             'scope': ', '.join(scopes)
          })
 
-        app.logger.info(authorize_url)
         webbrowser.open(authorize_url)
 
         return self
+
+    def get_access_token(self):
+        try:
+            self.autorization_url()
+        except Exception as e:
+            pass
 
     @property
     def session(self):
@@ -52,28 +57,7 @@ class SpotifyAuth(ServiceAuth):
             'redirect_uri': 'http://localhost:5000/callback'
         }
 
-        pdb.set_trace()
-        try:
-            request_args.update({'code': get_tokens(SERVICE_CODE).code})
-        except sq_exceptions.NoResultFound as e:
-            self.autorization_url()
-            request_args.update({'code': get_tokens(SERVICE_CODE).code})
-
-        try:
-            session = self.oauth.get_auth_session(
-                data=request_args, decoder=json.loads)
-        except Exception as e:
-            data = {
-                'grant_type': 'refresh_token',
-                'refresh_token': os.environ['refresh_token']
-            }
-            session = self.oauth.get_auth_session(
-                data=request_args, decoder=json.loads)
-            click.echo(session.access_token_response.json())
-
-        response = session.access_token_response.json()
-        save_tokens('spotify', response)
-        return session
+        self.get_access_token()
 
 
 class SpotifyPlaylists(Playlist):

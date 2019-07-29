@@ -16,14 +16,10 @@ db.init_app(app)
 @app.route('/callback')
 def callback():
     from migrator.services.tokens import save_tokens
-
+    import pdb; pdb.set_trace()
     if request.args.get('code'):
-        import pdb; pdb.set_trace()
         save_tokens(1, request.args)
-        # user_tokens = tokens.save_tokens(request)
-        # tokens.Tokens.query.filter_by(
-        #     service=tokens.SPOTIFY).one()
-        # user_tokens.save(request)
+
     return 'Codigo salvo com sucesso'
 
 
