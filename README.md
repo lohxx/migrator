@@ -1,3 +1,9 @@
+### Services suported
+- Spotify
+- Deezer
+- Youtube
+
+
 
 Usage: [OPTIONS] COMMAND [ARGS]...
 
