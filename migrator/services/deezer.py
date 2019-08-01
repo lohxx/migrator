@@ -2,6 +2,7 @@ import os
 
 from rauth import OAuth2Service
 
+from migrator import app
 from migrator.services.interfaces import Playlist, ServiceAuth
 
 

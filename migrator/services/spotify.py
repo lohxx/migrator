@@ -5,7 +5,9 @@ import pdb
 import webbrowser
 
 import click
+import requests
 
+from flask import request
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
@@ -36,7 +38,7 @@ class SpotifyAuth(ServiceAuth):
         ]
         authorize_url = self.oauth.get_authorize_url(**{
             'response_type': 'token',
-            'redirect_uri': 'http://localhost:5000/callback',
+            'redirect_uri': 'http://localhost:5000/spotify/callback',
             'scope': ', '.join(scopes)
          })
 
@@ -45,18 +47,10 @@ class SpotifyAuth(ServiceAuth):
         return self
 
     def get_access_token(self):
-        try:
-            self.autorization_url()
-        except Exception as e:
-            pass
+        self.autorization_url()
 
     @property
     def session(self):
-        request_args = {
-            'grant_type': 'authorization_code',
-            'redirect_uri': 'http://localhost:5000/callback'
-        }
-
         self.get_access_token()
 
 

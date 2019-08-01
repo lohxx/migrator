@@ -13,15 +13,18 @@ db = SQLAlchemy(app)
 db.init_app(app)
 
 
-@app.route('/callback')
-def callback():
+@app.route('/deezer/callback')
+def deezer_callback():
+    return 'deezer'
+
+
+@app.route('/spotify/callback')
+def spotify_callback():
     from migrator.services.tokens import save_tokens
+    if request.args.get('access_token'):
+        save_tokens(request.args)
+
     import pdb; pdb.set_trace()
-    if request.args.get('code'):
-        save_tokens(1, request.args)
-
-    return 'Codigo salvo com sucesso'
-
 
 if __name__ == '__main__':
     app.run(debug=True)
