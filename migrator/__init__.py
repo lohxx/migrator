@@ -7,7 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/migrator.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URI']
 
 db = SQLAlchemy(app)
 db.init_app(app)
