@@ -1,5 +1,12 @@
+### Supported services
+- Spotify
+- Deezer
+- Youtube
 
-Usage: [OPTIONS] COMMAND [ARGS]...
+
+### Usage
+
+[OPTIONS] COMMAND [ARGS]...
 
 Commands:
   copy
