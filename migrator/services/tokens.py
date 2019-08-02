@@ -23,8 +23,6 @@ def save_tokens(service, tokens):
         db.session.rollback()
         click.echo(e)
 
-    import pdb; pdb.set_trace()
-
 
 def update_or_create(service, kwargs):
 

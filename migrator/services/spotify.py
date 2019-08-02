@@ -15,10 +15,10 @@ from migrator import app
 from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
 
-SERVICE_CODE = 1
-
 
 class SpotifyAuth(ServiceAuth):
+    SERVICE_CODE = 1
+
     def __init__(self):
         self.oauth = OAuth2Service(
             name='spotify',
@@ -37,7 +37,7 @@ class SpotifyAuth(ServiceAuth):
             'playlist-modify-private'
         ]
         authorize_url = self.oauth.get_authorize_url(**{
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5000/spotify/callback',
             'scope': ', '.join(scopes)
          })
@@ -46,12 +46,38 @@ class SpotifyAuth(ServiceAuth):
 
         return self
 
-    def get_access_token(self):
-        self.autorization_url()
+    def _get_access_token(self, data):
+        session = None
+        try:
+            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+        except Exception as e:
+            data = {
+                'grant_type': 'refresh_token',
+                'refresh_token': get_tokens(self.SERVICE_CODE).refresh_token
+            }
+            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
+
+        return session
 
     @property
     def session(self):
-        self.get_access_token()
+        session = None
+        data = {
+            'grant_type': 'authorization_code',
+            'redirect_uri': 'http://localhost:5000/spotify/callback'
+        }
+
+        try:
+            tokens = get_tokens(self.SERVICE_CODE)
+            data.update({'code': tokens.code})
+        except sq_exceptions.NoResultFound as e:
+            self.autorization_url()
+
+        if data.get('code'):
+            session = self._get_access_token(data)
+            save_tokens(self.SERVICE_CODE, session.access_token_response.json())
+
+        return session
 
 
 class SpotifyPlaylists(Playlist):
@@ -100,10 +126,3 @@ class SpotifyPlaylists(Playlist):
                 return {'playlist': name, 'tracks': tracks}
         else:
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
-
-
-# TODO:
-    # 1. Adicionar tabela para salvar o access_token, refresh_token e o code
-    # 2. Criar flags para identificar o deezer, spotify e o youtube - DONE
-    # 3. Colocar o sqlite para funcionar
-    # 4. Separara a autenticação das buscas? DONE

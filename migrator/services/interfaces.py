@@ -11,10 +11,6 @@ class ServiceAuth(ABC):
     def autorization_url(self):
         pass
 
-    @abstractmethod
-    def get_access_token(self):
-        pass
-
 
 class Playlist(ABC):
     @abstractmethod

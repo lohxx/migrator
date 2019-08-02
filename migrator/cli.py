@@ -3,13 +3,13 @@ import pprint
 import click
 
 
-from migrator.services.deezer import DeezerService
+from migrator.services.deezer import DeezerPlaylists
 from migrator.services.spotify import SpotifyPlaylists
 from migrator.services.youtube import YoutubeService
 
 
 SERVICES = {
-    'deezer': DeezerService,
+    'deezer': DeezerPlaylists,
     'spotify': SpotifyPlaylists,
     'youtube': YoutubeService
 }
