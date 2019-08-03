@@ -10,6 +10,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URI']
 
 db = SQLAlchemy(app)
+db.init_app(app)
 
 
 @app.route('/deezer/callback')
@@ -31,7 +32,11 @@ def spotify_callback():
     return "token salvo"
 
 
+def init_db():
+    """ Inicializa o banco de dados """
+    from migrator.services.tokens import TokensManager
+    db.create_all()
+
+
 if __name__ == '__main__':
     app.run(debug=True)
-    db.init_app(app)
-

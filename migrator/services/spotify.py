@@ -29,36 +29,6 @@ class SpotifyAuth(ServiceAuth):
             access_token_url='https://accounts.spotify.com/api/token'
         )
 
-    def autorization_url(self):
-        scopes = [
-            'playlist-modify-public',
-            'playlist-read-collaborative',
-            'playlist-read-private',
-            'playlist-modify-private'
-        ]
-        authorize_url = self.oauth.get_authorize_url(**{
-            'response_type': 'code',
-            'redirect_uri': 'http://localhost:5000/spotify/callback',
-            'scope': ', '.join(scopes)
-         })
-
-        webbrowser.open(authorize_url)
-
-        return self
-
-    def _get_access_token(self, data):
-        session = None
-        try:
-            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
-        except Exception as e:
-            data = {
-                'grant_type': 'refresh_token',
-                'refresh_token': get_tokens(self.SERVICE_CODE).refresh_token
-            }
-            session = self.oauth.get_auth_session(data=data, decoder=json.loads)
-
-        return session
-
     @property
     def session(self):
         session = None
@@ -71,11 +41,21 @@ class SpotifyAuth(ServiceAuth):
             tokens = get_tokens(self.SERVICE_CODE)
             data.update({'code': tokens.code})
         except sq_exceptions.NoResultFound as e:
-            self.autorization_url()
+            self.autorization_url({
+                'response_type': 'code',
+                'redirect_uri': 'http://localhost:5000/spotify/callback',
+                'scope': ', '.join([
+                    'playlist-modify-public',
+                    'playlist-read-collaborative',
+                    'playlist-read-private',
+                    'playlist-modify-private'
+                ])
+            })
+            tokens = get_tokens(self.SERVICE_CODE)
+            data.update({'code': tokens.code})
 
-        if data.get('code'):
-            session = self._get_access_token(data)
-            save_tokens(self.SERVICE_CODE, session.access_token_response.json())
+        session = self._get_access_token(data)
+        save_tokens(self.SERVICE_CODE, session.access_token_response.json())
 
         return session
 
@@ -84,15 +64,7 @@ class SpotifyPlaylists(Playlist):
     def __init__(self):
         self.oauth = SpotifyAuth()
 
-    def request(self, endpoint, page=0, limit=30):
-        response = self.oauth.session.get(endpoint)
-
-        if response.status_code != 200:
-            raise Exception(response.text)
-
-        return response.json()
-
-    def copy(self, playlist):
+    def copy(self, playlist, tracks):
         pass
 
     def get_tracks(self, tracks_url):
