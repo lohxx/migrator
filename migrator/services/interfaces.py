@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import pdb
 import webbrowser
 
 from abc import ABC, abstractmethod
@@ -14,12 +15,10 @@ class ServiceAuth(ABC):
         self.oauth = None
 
     def _get_access_token(self, args):
-        return
         try:
             session = self.oauth.get_auth_session(
                 data=args,
                 decoder=json.loads,
-                method='GET'
             )
         except Exception as e:
             session = self.oauth.get_auth_session(
@@ -54,7 +53,6 @@ class Playlist(ABC):
 
     def request(self, endpoint, page=0, limit=30):
         response = self.oauth.session.get(endpoint)
-
         if response.status_code != 200:
             raise Exception(response.text)
 

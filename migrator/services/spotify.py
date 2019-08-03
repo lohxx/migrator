@@ -71,7 +71,8 @@ class SpotifyPlaylists(Playlist):
         click.echo('Buscando as musicas...')
 
         tracks = []
-        response = self.request(f"v1/{'/'.join(tracks_url.split('/')[-3:])}")
+        playlist_uri = '/'.join(tracks_url.split('/')[-3:])
+        response = next(self.request(f"v1/{playlist_uri}"))
 
         for track in response['items']:
             tracks.append({
@@ -86,15 +87,28 @@ class SpotifyPlaylists(Playlist):
 
         return tracks
 
+    def request(self, endpoint, page=0, limit=30):
+        response = self.oauth.session.get(endpoint)
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        response = response.json()
+
+        while response['next']:
+            yield response
+            response = self.oauth.session.get(response['next']).json()
+
+        # itens sem paginação
+        yield response
+
     def get(self, name):
         click.echo('Procurando a playlist...')
-        playlists = self.request('v1/me/playlists')
 
-        for playlist in playlists['items']:
-            if playlist['name'] == name:
-                click.echo('Playlist encotrada!')
-                tracks = self.get_tracks(playlist['tracks']['href'])
-
-                return {'playlist': name, 'tracks': tracks}
+        for playlist in self.request('v1/me/playlists'):
+            for pl in playlist['items']:
+                if pl['name'] == name:
+                    click.echo('Playlist encotrada!')
+                    tracks = self.get_tracks(pl['tracks']['href'])
+                    return {'playlist': name, 'tracks': tracks}
         else:
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
