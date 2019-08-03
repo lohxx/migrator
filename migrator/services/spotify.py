@@ -71,8 +71,7 @@ class SpotifyPlaylists(Playlist):
         click.echo('Buscando as musicas...')
 
         tracks = []
-        playlist_uri = '/'.join(tracks_url.split('/')[-3:])
-        response = next(self.request(f"v1/{playlist_uri}"))
+        response = next(self.request(tracks_url))
 
         for track in response['items']:
             tracks.append({
