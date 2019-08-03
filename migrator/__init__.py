@@ -16,11 +16,10 @@ db.init_app(app)
 @app.route('/deezer/callback')
 def deezer_callback():
     from migrator.services.tokens import save_tokens
-    import pdb; pdb.set_trace()
     if request.args.get('code'):
         save_tokens(2, request.args)
 
-    return 'deezer'
+    return 'token salvo'
 
 
 @app.route('/spotify/callback')

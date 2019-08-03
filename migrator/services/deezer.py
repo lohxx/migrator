@@ -59,7 +59,7 @@ class DeezerAuth(ServiceAuth):
             data.update({'code': tokens.code})
 
         tokens = self._get_access_token(data)
-        save_tokens(self.SERVICE_CODE, tokens.json())
+        save_tokens(self.SERVICE_CODE, tokens)
 
         # gerar uma session que usa o token...
         return session
