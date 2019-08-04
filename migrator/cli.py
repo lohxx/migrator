@@ -24,8 +24,9 @@ def cli():
 
 def execute_copy(origin, destination, playlist_name):
     origin_service = origin()
+    destination_service = destination()
     playlist = origin_service.get(playlist_name)
-    pprint.pprint(playlist)
+    destination_service.copy(playlist)
 
 
 @cli.command()

@@ -111,3 +111,8 @@ class SpotifyPlaylists(Playlist):
                     return {'playlist': name, 'tracks': tracks}
         else:
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+
+    def copy(self, playlist):
+        name, tracks = playlist.values()
+
+        self.request
