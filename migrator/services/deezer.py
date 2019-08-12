@@ -51,21 +51,35 @@ class DeezerAuth(ServiceAuth):
         return session
 
 
-class DeezerPlaylists(Playlist):
+class DeezerRequests:
     def __init__(self):
         self.oauth = DeezerAuth()
-        self.user = self.request('https://api.deezer.com/user/me')
 
-    def request(self, endpoint, page=0, limit=30):
-        response = self.oauth.session.get(endpoint)
+    def get(self, endpoint, q=None):
+        response = self.oauth.session.get('http://api.deezer.com/'+endpoint, params=q)
+
         if response.status_code != 200:
             raise Exception(response.text)
 
         return response.json()
 
+    def post(self, endpoint, data=None):
+        response = self.oauth.session.post('http://api.deezer.com/'+endpoint, params=data)
+
+        if response.status_code not in (200, 201):
+            raise Exception(response.text)
+
+        return response
+
+
+class DeezerPlaylists(Playlist):
+    def __init__(self):
+        self.requests = DeezerRequests()
+        self.user = self.requests.get('user/me')
+
     def get_tracks(self, tracks_url):
         tracks = []
-        playlist_tracks = self.request(tracks_url)
+        playlist_tracks = self.requests.get(tracks_url)
 
         for track in playlist_tracks['data']:
             tracks.append({
@@ -78,7 +92,7 @@ class DeezerPlaylists(Playlist):
 
     def get(self, name):
         click.echo('Procurando a playlist...')
-        playlists = self.request(f'http://api.deezer.com/user/{self.user["id"]}/playlists')
+        playlists = self.requests.get(f'/user/{self.user["id"]}/playlists')
 
         for playlist in playlists['data']:
             if playlist['title'] == name:
@@ -91,5 +105,16 @@ class DeezerPlaylists(Playlist):
     def copy(self, playlist):
         click.echo('Copiando a playlist!')
         name, tracks = playlist.values()
+        playlist_id = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})
 
-        # atualizar tbm uma playlist existente, com as faixas da playlist que vai ser migrada
+        track_ids = []
+        for track in tracks:
+            params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"'}
+            matches = self.requests.get('search/', q=params)
+            for match in matches['data']:
+                if track['name'] == match['title'] and match['artist']['name'] in track['artists']:
+                    track_ids.append(str(match['id']))
+
+        if track_ids:
+            self.requests.post(f'playlist/{playlist_id}/tracks', data=','.join(track_ids))
+
