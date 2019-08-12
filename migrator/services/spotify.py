@@ -99,7 +99,7 @@ class SpotifyPlaylists(Playlist):
         for track in response['items']:
             tracks.append({
                 'name': track['track']['name'],
-                'album': track['album']['name'],
+                'album': track['track']['album']['name'],
                 'artists': list(
                     map(
                         lambda artists: artists['name'],
@@ -144,7 +144,7 @@ class SpotifyPlaylists(Playlist):
 
             for match in matches.get('items'):
                 artists = list(filter(lambda i: i['name'] in track['artists'], match['artists']))
-                if artists and track['name'] in match['name']:
+                if artists and track['name'] in match['name'] and match['album']['name'] == track['album']:
                     playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
