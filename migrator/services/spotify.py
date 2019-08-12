@@ -60,18 +60,41 @@ class SpotifyAuth(ServiceAuth):
         return session
 
 
-class SpotifyPlaylists(Playlist):
+class SpotifyRequests:
     def __init__(self):
         self.oauth = SpotifyAuth()
 
-    def copy(self, playlist, tracks):
-        pass
+    def get(self, endpoint, q=None):
+        response = self.oauth.session.get(endpoint, params=q)
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        response = response.json()
+        while response.get('next'):
+            yield response
+            response = self.oauth.session.get(response['next']).json()
+
+        # itens sem paginação
+        yield response
+
+    def post(self, endpoint, data):
+        response = self.oauth.session.post(endpoint, json=data)
+
+        if response.status_code not in (200, 201):
+            raise Exception(response.text)
+
+        return response.json()
+
+
+class SpotifyPlaylists(Playlist):
+    def __init__(self):
+        self.requests = SpotifyRequests()
 
     def get_tracks(self, tracks_url):
         click.echo('Buscando as musicas...')
 
         tracks = []
-        response = next(self.request(tracks_url))
+        response = next(self.requests.get(tracks_url))
 
         for track in response['items']:
             tracks.append({
@@ -86,24 +109,10 @@ class SpotifyPlaylists(Playlist):
 
         return tracks
 
-    def request(self, endpoint, page=0, limit=30):
-        response = self.oauth.session.get(endpoint)
-        if response.status_code != 200:
-            raise Exception(response.text)
-
-        response = response.json()
-
-        while response['next']:
-            yield response
-            response = self.oauth.session.get(response['next']).json()
-
-        # itens sem paginação
-        yield response
-
     def get(self, name):
         click.echo('Procurando a playlist...')
 
-        for playlist in self.request('v1/me/playlists'):
+        for playlist in self.requests.get('v1/me/playlists'):
             for pl in playlist['items']:
                 if pl['name'] == name:
                     click.echo('Playlist encotrada!')
@@ -115,4 +124,30 @@ class SpotifyPlaylists(Playlist):
     def copy(self, playlist):
         name, tracks = playlist.values()
 
-        self.request
+        playlist = self.get(name)
+
+        if not playlist:
+            playlist = self.requests.post(
+                '/v1/me/playlists',
+                {
+                    "name": name,
+                    "description": "New playlist description",
+                    "public": True
+                }
+            )
+
+        playlist_tracks = []
+        for track in tracks:
+            params = {'q': f'{track["artists"][0]} {track["name"]}', 'type': 'track'}
+            matches = next(self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
+
+            for match in matches.get('items'):
+                artists = list(filter(lambda i: i['name'] in track['artists'], match['artists']))
+                if artists and track['name'] in match['name']:
+                    playlist_tracks.append(match['uri'])
+
+        if playlist_tracks:
+            # nao adicionar as musicas que já existem na playlist
+            response = self.requests.post(f'v1/playlists/{playlist["id"]}/tracks', {'uris': playlist_tracks})
+            if response:
+                click.echo('A playlist foi copiada com sucesso')

@@ -90,3 +90,5 @@ class DeezerPlaylists(Playlist):
     def copy(self, playlist):
         click.echo('Copiando a playlist!')
         name, tracks = playlist.values()
+
+        # atualizar tbm uma playlist existente, com as faixas da playlist que vai ser migrada
