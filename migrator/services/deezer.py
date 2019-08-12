@@ -69,7 +69,7 @@ class DeezerRequests:
         if response.status_code not in (200, 201):
             raise Exception(response.text)
 
-        return response
+        return response.json()
 
 
 class DeezerPlaylists(Playlist):
@@ -105,16 +105,22 @@ class DeezerPlaylists(Playlist):
     def copy(self, playlist):
         click.echo('Copiando a playlist!')
         name, tracks = playlist.values()
-        playlist_id = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})
+        playlist_id = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})['id']
 
+        cache = []
         track_ids = []
         for track in tracks:
             params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"'}
             matches = self.requests.get('search/', q=params)
             for match in matches['data']:
-                if track['name'] == match['title'] and match['artist']['name'] in track['artists']:
+                track_already_added = f'{match["title"]} - {match["artist"]["name"]}'
+                if track['name'] == match['title'] and match['artist']['name'] in track['artists'] and track_already_added not in cache:
+                    cache.append(track_already_added)
+                    click.echo(f'{track["name"]} - {track["artists"][0]} encontrado!')
                     track_ids.append(str(match['id']))
-
+                    continue
+                else:
+                    click.echo(f'{track["name"]} - {track["artists"][0]} não foi encontrado')
         if track_ids:
-            self.requests.post(f'playlist/{playlist_id}/tracks', data=','.join(track_ids))
-
+            import pdb; pdb.set_trace()
+            self.requests.post(f'playlist/{playlist_id}/tracks', data={'songs': ','.join(set(track_ids))})
