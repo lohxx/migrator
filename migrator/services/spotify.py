@@ -99,6 +99,7 @@ class SpotifyPlaylists(Playlist):
         for track in response['items']:
             tracks.append({
                 'name': track['track']['name'],
+                'album': track['album']['name'],
                 'artists': list(
                     map(
                         lambda artists: artists['name'],
@@ -138,7 +139,7 @@ class SpotifyPlaylists(Playlist):
 
         playlist_tracks = []
         for track in tracks:
-            params = {'q': f'{track["artists"][0]} {track["name"]}', 'type': 'track'}
+            params = {'q': f'{track["artists"][0]} {track["name"]} album:{track["album"]}', 'type': 'track'}
             matches = next(self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
 
             for match in matches.get('items'):

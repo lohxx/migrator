@@ -70,6 +70,7 @@ class DeezerPlaylists(Playlist):
         for track in playlist_tracks['data']:
             tracks.append({
                 'name': track['title'],
+                'album': track['album']['title'],
                 'artists': [track['artist']['name']]
             })
 
