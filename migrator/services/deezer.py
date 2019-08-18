@@ -25,6 +25,8 @@ class DeezerAuth(ServiceAuth):
             access_token_url='https://connect.deezer.com/oauth/access_token.php?'
         )
 
+        self.base_url = self.oauth.base_url
+
     def _get_access_token(self, args):
         session = requests.Session()
         response = session.get(self.oauth.access_token_url, params=args)
@@ -56,15 +58,14 @@ class DeezerRequests:
         self.oauth = DeezerAuth()
 
     def get(self, endpoint, q=None):
-        response = self.oauth.session.get('http://api.deezer.com/'+endpoint, params=q)
-
+        response = self.oauth.session.get(self.oauth.base_url+endpoint, params=q)
         if response.status_code != 200:
             raise Exception(response.text)
 
         return response.json()
 
     def post(self, endpoint, data=None):
-        response = self.oauth.session.post('http://api.deezer.com/'+endpoint, params=data)
+        response = self.oauth.session.post(self.oauth.base_url+endpoint, params=data)
 
         if response.status_code not in (200, 201):
             raise Exception(response.text)
@@ -103,24 +104,28 @@ class DeezerPlaylists(Playlist):
             click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
 
     def copy(self, playlist):
-        click.echo('Copiando a playlist!')
         name, tracks = playlist.values()
         playlist_id = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})['id']
 
-        cache = []
         track_ids = []
+        tracks_found = []
+        tracks_not_found = []
+
         for track in tracks:
             params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"'}
             matches = self.requests.get('search/', q=params)
             for match in matches['data']:
                 track_already_added = f'{match["title"]} - {match["artist"]["name"]}'
-                if track['name'] == match['title'] and match['artist']['name'] in track['artists'] and track_already_added not in cache:
-                    cache.append(track_already_added)
-                    click.echo(f'{track["name"]} - {track["artists"][0]} encontrado!')
+                if track['name'] == match['title'] and match['artist']['name'] in track['artists']:
+                    tracks_found.append(track_already_added)
                     track_ids.append(str(match['id']))
                     continue
                 else:
-                    click.echo(f'{track["name"]} - {track["artists"][0]} não foi encontrado')
+                    tracks_not_found.append(track_already_added)
         if track_ids:
-            import pdb; pdb.set_trace()
-            self.requests.post(f'playlist/{playlist_id}/tracks', data={'songs': ','.join(set(track_ids))})
+            response = self.requests.post(f'playlist/{playlist_id}/tracks', data={'songs': ','.join(set(track_ids))})
+            if response:
+                click.echo('A playlist foi copiada com sucesso')
+
+        for track in (set(tracks_not_found) - set(tracks_found)):
+            click.echo(f'A musica: {track} não foi encontrada') 
