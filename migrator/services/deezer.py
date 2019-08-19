@@ -82,7 +82,7 @@ class DeezerPlaylists(Playlist):
         tracks = []
         playlist_tracks = self.requests.get(tracks_url)
 
-        for track in playlist_tracks['data']:
+        for track in playlist_tracks.get('data', []):
             tracks.append({
                 'name': track['title'],
                 'album': track['album']['title'],
