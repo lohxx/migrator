@@ -1,5 +1,3 @@
-### Installation
-
 
 ### Supported services
 - Spotify
@@ -19,3 +17,6 @@ Options:
   --to-service [spotify|deezer|youtube] [required]  
   --from-service [spotify|deezer|youtube] [required]  
 
+
+### Installation
+`pip install ...`
