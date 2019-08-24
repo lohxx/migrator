@@ -1,5 +1,6 @@
 import os
 import requests
+import pdb
 import webbrowser
 
 from rauth import OAuth2Service
@@ -58,11 +59,15 @@ class DeezerRequests:
         self.oauth = DeezerAuth()
 
     def get(self, endpoint, q=None):
-        response = self.oauth.session.get(self.oauth.base_url+endpoint, params=q)
-        if response.status_code != 200:
-            raise Exception(response.text)
+        if self.oauth.base_url not in endpoint:
+            response = self.oauth.session.get(self.oauth.base_url+endpoint, params=q).json()
+        else:
+            response = self.oauth.session.get(endpoint, params=q).json()
 
-        return response.json()
+        if response.get('error'):
+            raise Exception(response['message'])
+
+        return response
 
     def post(self, endpoint, data=None):
         response = self.oauth.session.post(self.oauth.base_url+endpoint, params=data)
@@ -77,6 +82,15 @@ class DeezerPlaylists(Playlist):
     def __init__(self):
         self.requests = DeezerRequests()
         self.user = self.requests.get('user/me')
+
+    def search_playlist(self, name):
+        playlists = self.requests.get(f'/user/{self.user["id"]}/playlists')
+
+        for playlists in playlists['data']:
+            if playlists['title'] == name:
+                return playlists
+        else:
+            return {}
 
     def get_tracks(self, tracks_url):
         tracks = []
@@ -93,19 +107,25 @@ class DeezerPlaylists(Playlist):
 
     def get(self, name):
         click.echo('Procurando a playlist...')
-        playlists = self.requests.get(f'/user/{self.user["id"]}/playlists')
+        playlist = self.search_playlist(name)
 
-        for playlist in playlists['data']:
-            if playlist['title'] == name:
-                click.echo('Playlist encotrada!')
-                tracks = self.get_tracks(playlist['tracklist'])
-                return {'playlist': name, 'tracks': tracks}
-        else:
-            click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+        if playlist:
+            click.echo('Playlist encotrada!')
+            tracks = self.get_tracks(playlist['tracklist'])
+            return {'playlist': name, 'tracks': tracks}
+
+        click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+        return {}
 
     def copy(self, playlist):
         name, tracks = playlist.values()
-        playlist_id = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})['id']
+
+        playlist = self.search_playlist(name)
+
+        if playlist:
+            tracks = self._diff_tracks(self.get_tracks(playlist['tracklist']), tracks)
+        else:
+            playlist = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})
 
         track_ids = []
         tracks_found = []
@@ -123,7 +143,7 @@ class DeezerPlaylists(Playlist):
                 else:
                     tracks_not_found.append(track_already_added)
         if track_ids:
-            response = self.requests.post(f'playlist/{playlist_id}/tracks', data={'songs': ','.join(set(track_ids))})
+            response = self.requests.post(f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(set(track_ids))})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
 

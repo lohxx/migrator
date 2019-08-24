@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import itertools
 import json
 import pdb
 import webbrowser
@@ -51,9 +52,23 @@ class Playlist(ABC):
     def get(self):
         pass
 
-    def request(self, endpoint, page=0, limit=30):
-        response = self.oauth.session.get(endpoint)
-        if response.status_code != 200:
-            raise Exception(response.text)
+    def _diff_tracks(self, already_existents, new_tracks):
+        tracks_to_be_copied = []
 
-        return response.json()
+        dict_new, dict_existents = {}, {}
+
+        if not already_existents:
+            return new_tracks
+
+        for existent, new in itertools.zip_longest(already_existents, new_tracks):
+            if existent is None or new is None:
+                continue
+
+            dict_new[f'{new["name"]} - {new["artists"][0]}'] = new
+            dict_existents[f'{existent["name"]} - {existent["artists"][0]}'] = existent
+
+        for track_key in dict_existents:
+            if track_key not in dict_new:
+                tracks_to_be_copied.append(dict_existents[track_key])
+
+        return tracks_to_be_copied

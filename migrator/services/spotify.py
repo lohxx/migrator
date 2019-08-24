@@ -90,6 +90,14 @@ class SpotifyPlaylists(Playlist):
     def __init__(self):
         self.requests = SpotifyRequests()
 
+    def search_playlist(self, name):
+        for playlist_group in self.requests.get('v1/me/playlists'):
+            for playlist in playlist_group['items']:
+                if playlist['name'] == name:
+                    return playlist
+        else:
+            return {}
+
     def get_tracks(self, tracks_url):
         click.echo('Buscando as musicas...')
 
@@ -113,21 +121,23 @@ class SpotifyPlaylists(Playlist):
     def get(self, name):
         click.echo('Procurando a playlist...')
 
-        for playlist in self.requests.get('v1/me/playlists'):
-            for pl in playlist['items']:
-                if pl['name'] == name:
-                    click.echo('Playlist encotrada!')
-                    tracks = self.get_tracks(pl['tracks']['href'])
-                    return {'playlist': name, 'tracks': tracks}
-        else:
-            click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+        playlist = self.search_playlist(name)
+
+        if playlist:
+            click.echo('Playlist encotrada!')
+            tracks = self.get_tracks(playlist['tracks']['href'])
+            return {'playlist': name, 'tracks': tracks}
+
+        click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
+        return {}
 
     def copy(self, playlist):
         name, tracks = playlist.values()
+        playlist = self.search_playlist(name)
 
-        playlist = self.get(name)
-
-        if not playlist:
+        if playlist:
+            tracks = self._diff_tracks(self.get_tracks(playlist['tracks']['href']), tracks)
+        else:
             playlist = self.requests.post(
                 '/v1/me/playlists',
                 {
@@ -148,7 +158,6 @@ class SpotifyPlaylists(Playlist):
                     playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
-            # nao adicionar as musicas que já existem na playlist
             response = self.requests.post(f'v1/playlists/{playlist["id"]}/tracks', {'uris': playlist_tracks})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
