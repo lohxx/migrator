@@ -14,6 +14,10 @@ class ServiceAuth(ABC):
 
     def __init__(self):
         self.oauth = None
+       
+    @abstractmethod
+    def session(self):
+        pass
 
     def _get_access_token(self, args):
         try:
@@ -38,12 +42,12 @@ class ServiceAuth(ABC):
 
         return self
 
-    @abstractmethod
-    def session(self):
-        pass
-
 
 class Playlist(ABC):
+    @abstractmethod
+    def copy(self, playlist):
+        pass
+
     @abstractmethod
     def get_tracks(self):
         pass
@@ -67,8 +71,8 @@ class Playlist(ABC):
             dict_new[f'{new["name"]} - {new["artists"][0]}'] = new
             dict_existents[f'{existent["name"]} - {existent["artists"][0]}'] = existent
 
-        for track_key in dict_existents:
-            if track_key not in dict_new:
-                tracks_to_be_copied.append(dict_existents[track_key])
+        for track_key in dict_new:
+            if track_key not in dict_existents:
+                tracks_to_be_copied.append(dict_new[track_key])
 
         return tracks_to_be_copied
