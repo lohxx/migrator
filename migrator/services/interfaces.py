@@ -49,11 +49,15 @@ class Playlist(ABC):
         pass
 
     @abstractmethod
-    def get_tracks(self):
+    def get_tracks(self, tracks_url):
         pass
 
     @abstractmethod
-    def get(self):
+    def get(self, name):
+        pass
+    
+    @abstractmethod
+    def search_playlist(self, name):
         pass
 
     def _diff_tracks(self, already_existents, new_tracks):
