@@ -1,22 +1,22 @@
+# Migrator
 
-### Supported services
+Migrator is a Python service for dealing with playlists from streaming music services.
+
+## Installation
+
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install migrator or clone this repository.
+
+```bash
+pip install migrator
+```
+
+## Usage
+
+```bash
+migrator --from-service=spotify --to-service=deezer --playlist-name=xyz
+```
+
+## Supported services
 - Spotify
 - Deezer
 - Youtube
-
-
-### Usage
-
-[OPTIONS] COMMAND [ARGS]...
-
-Commands:
-  copy
-
-Options:  
-  --playlist-name TEXT [required]  
-  --to-service [spotify|deezer|youtube] [required]  
-  --from-service [spotify|deezer|youtube] [required]  
-
-
-### Installation
-`pip install ...`
