@@ -2,9 +2,11 @@
 import itertools
 import json
 import pdb
+import re
 import webbrowser
 
 from abc import ABC, abstractmethod
+from flask import request
 
 from migrator.services.tokens import save_tokens, get_tokens
 
@@ -52,6 +54,15 @@ class Playlist(ABC):
     def get(self):
         pass
 
+    def match_track(self, track, match):
+        normalized_track = re.sub("[^\w\s\.,']+", "", track)
+        normalized_match = re.sub("[^\w\s\.,']+", "", match)
+        track_regexp = re.compile(f'({normalized_track})', flags=re.IGNORECASE)
+        if track_regexp.search(normalized_match):
+            return normalized_track, True
+        
+        return normalized_track, False
+
     def _diff_tracks(self, already_existents, new_tracks):
         tracks_to_be_copied = []
 
@@ -61,14 +72,14 @@ class Playlist(ABC):
             return new_tracks
 
         for existent, new in itertools.zip_longest(already_existents, new_tracks):
-            if existent is None or new is None:
+            if not all([existent, new]):
                 continue
 
             dict_new[f'{new["name"]} - {new["artists"][0]}'] = new
             dict_existents[f'{existent["name"]} - {existent["artists"][0]}'] = existent
 
-        for track_key in dict_existents:
-            if track_key not in dict_new:
-                tracks_to_be_copied.append(dict_existents[track_key])
+        for track_key in dict_new:
+            if track_key not in dict_existents:
+                tracks_to_be_copied.append(dict_new[track_key])
 
         return tracks_to_be_copied

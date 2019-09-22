@@ -1,6 +1,7 @@
 import os
 import requests
 import pdb
+import re
 import webbrowser
 
 from rauth import OAuth2Service
@@ -12,6 +13,9 @@ from migrator import app
 from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
 
+
+
+# COLOCAR UMA PROGRESS BAR QUANDO ESTIVER COPIANDO UMA PLAYLIST
 
 class DeezerAuth(ServiceAuth):
     SERVICE_CODE = 2
@@ -132,20 +136,21 @@ class DeezerPlaylists(Playlist):
         tracks_not_found = []
 
         for track in tracks:
-            params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"'}
+            params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
             matches = self.requests.get('search/', q=params)
             for match in matches['data']:
-                track_already_added = f'{match["title"]} - {match["artist"]["name"]}'
-                if track['name'] == match['title'] and match['artist']['name'] in track['artists']:
-                    tracks_found.append(track_already_added)
+                new_track, copy_track = self.match_track(track['name'], match['title'])
+                if copy_track and new_track not in tracks_found:
+                    tracks_found.append(new_track)
                     track_ids.append(str(match['id']))
                     continue
                 else:
-                    tracks_not_found.append(track_already_added)
+                    tracks_not_found.append(new_track)
+
         if track_ids:
             response = self.requests.post(f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(set(track_ids))})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
 
         for track in (set(tracks_not_found) - set(tracks_found)):
-            click.echo(f'A musica: {track} não foi encontrada') 
+            click.echo(f'A musica: {track} não foi encontrada')

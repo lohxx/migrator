@@ -20,6 +20,8 @@ class SpotifyAuth(ServiceAuth):
     SERVICE_CODE = 1
 
     def __init__(self):
+        callback_url = '/callback/spotify'
+
         self.oauth = OAuth2Service(
             name='spotify',
             base_url='https://api.spotify.com/v1',
@@ -138,23 +140,15 @@ class SpotifyPlaylists(Playlist):
         if playlist:
             tracks = self._diff_tracks(self.get_tracks(playlist['tracks']['href']), tracks)
         else:
-            playlist = self.requests.post(
-                '/v1/me/playlists',
-                {
-                    "name": name,
-                    "description": "New playlist description",
-                    "public": True
-                }
-            )
+            playlist = self.requests.post('/v1/me/playlists', {"name": name, "public": True})
 
         playlist_tracks = []
         for track in tracks:
-            params = {'q': f'{track["artists"][0]} {track["name"]} album:{track["album"]}', 'type': 'track'}
+            params = {'q': f'artist:{track["artists"][0]} track:{track["name"]} album:{track["album"]}', 'type': 'track'}
             matches = next(self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
 
             for match in matches.get('items'):
-                artists = list(filter(lambda i: i['name'] in track['artists'], match['artists']))
-                if artists and track['name'] in match['name'] and match['album']['name'] == track['album']:
+                if self.match_track(track['name'], match['name']):
                     playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
