@@ -16,6 +16,10 @@ class ServiceAuth(ABC):
 
     def __init__(self):
         self.oauth = None
+       
+    @abstractmethod
+    def session(self):
+        pass
 
     def _get_access_token(self, args):
         try:
@@ -40,18 +44,22 @@ class ServiceAuth(ABC):
 
         return self
 
-    @abstractmethod
-    def session(self):
-        pass
-
 
 class Playlist(ABC):
     @abstractmethod
-    def get_tracks(self):
+    def copy(self, playlist):
         pass
 
     @abstractmethod
-    def get(self):
+    def get_tracks(self, tracks_url):
+        pass
+
+    @abstractmethod
+    def get(self, name):
+        pass
+    
+    @abstractmethod
+    def search_playlist(self, name):
         pass
 
     def match_track(self, track, match):
