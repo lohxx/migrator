@@ -1,6 +1,3 @@
-# Migrator
-
-Migrator is a Python service for dealing with playlists from streaming music services.
 
 ## Installation
 
