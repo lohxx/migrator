@@ -14,9 +14,6 @@ from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
 
 
-
-# COLOCAR UMA PROGRESS BAR QUANDO ESTIVER COPIANDO UMA PLAYLIST
-
 class DeezerAuth(ServiceAuth):
     SERVICE_CODE = 2
 
@@ -125,7 +122,6 @@ class DeezerPlaylists(Playlist):
         name, tracks = playlist.values()
 
         playlist = self.search_playlist(name)
-
         if playlist:
             tracks = self._diff_tracks(self.get_tracks(playlist['tracklist']), tracks)
         else:
@@ -135,9 +131,14 @@ class DeezerPlaylists(Playlist):
         tracks_found = []
         tracks_not_found = []
 
+        # album:"{track["album"]}
         for track in tracks:
-            params = {'q': f'album:"{track["album"]}" track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
+            params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
             matches = self.requests.get('search/', q=params)
+
+            if track['name'] == 'Moment In Time':
+                pdb.set_trace()
+
             for match in matches['data']:
                 new_track, copy_track = self.match_track(track['name'], match['title'])
                 if copy_track and new_track not in tracks_found:
@@ -154,3 +155,6 @@ class DeezerPlaylists(Playlist):
 
         for track in (set(tracks_not_found) - set(tracks_found)):
             click.echo(f'A musica: {track} não foi encontrada')
+
+    def playlists(self):
+        return self.requests.get(f'/user/{self.user["id"]}/playlists')

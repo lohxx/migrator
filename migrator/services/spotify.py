@@ -155,3 +155,6 @@ class SpotifyPlaylists(Playlist):
             response = self.requests.post(f'v1/playlists/{playlist["id"]}/tracks', {'uris': playlist_tracks})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
+    
+    def playlists(self):
+        return list(self.requests.get('/v1/me/playlists'))

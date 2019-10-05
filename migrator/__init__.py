@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import os
-import sys
 
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -29,6 +28,21 @@ def spotify_callback():
         save_tokens(1, request.args)
 
     return "token salvo"
+
+
+@app.route('/spotify/playlists', methods=['GET'])
+def spotify_playlists():
+    from migrator.services.spotify import SpotifyPlaylists
+    spotify = SpotifyPlaylists()
+    playlists = spotify.playlists()
+    return playlists[0]
+
+
+@app.route('/deezer/playlists', methods=['GET'])
+def deezer_playlists():
+    from migrator.services.deezer import DeezerPlaylists
+    deezer = DeezerPlaylists()
+    return deezer.playlists()
 
 
 def init_db():
