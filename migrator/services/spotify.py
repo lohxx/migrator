@@ -66,7 +66,20 @@ class SpotifyRequests:
     def __init__(self):
         self.oauth = SpotifyAuth()
 
-    def get(self, endpoint, q=None):
+    def get(self, endpoint: str, q:str=None):
+        """
+        Busca informações.
+        
+        Args:
+            endpoint (str): endpoint da requisição.
+            q (str, optional): params da url. Defaults to None.
+        
+        Raises:
+            Exception: levanta exceção quando a requisição falha.
+        
+        Yields:
+            [type]: retorna o objeto devolvido pelo request.
+        """        
         response = self.oauth.session.get(endpoint, params=q)
         if response.status_code != 200:
             raise Exception(response.text)
@@ -79,7 +92,20 @@ class SpotifyRequests:
         # itens sem paginação
         yield response
 
-    def post(self, endpoint, data):
+    def post(self, endpoint: str, data: dict) -> dict:
+        """
+        Envia informações para o serviço de streaming.
+        
+        Args:
+            endpoint (str): endpoint da requisição.
+            data (dict): dados que serão enviados.
+        
+        Raises:
+            Exception: levanta exceção quando a requisição falha.
+        
+        Returns:
+            dict: resposta da requisição.
+        """        
         response = self.oauth.session.post(endpoint, json=data)
 
         if response.status_code not in (200, 201):
@@ -92,7 +118,16 @@ class SpotifyPlaylists(Playlist):
     def __init__(self):
         self.requests = SpotifyRequests()
 
-    def search_playlist(self, name):
+    def search_playlist(self, name: str) -> dict:
+        """
+        Busca a playlist no serviço de streaming.
+        
+        Args:
+            name (str): nome da playlist.
+        
+        Returns:
+            dict: infos da playlist.
+        """        
         for playlist_group in self.requests.get('v1/me/playlists'):
             for playlist in playlist_group['items']:
                 if playlist['name'] == name:
@@ -100,7 +135,16 @@ class SpotifyPlaylists(Playlist):
         else:
             return {}
 
-    def get_tracks(self, tracks_url):
+    def get_tracks(self, tracks_url: str) -> [dict]:
+        """
+        Busca as musicas de uma playlist.
+        
+        Args:
+            tracks_url (str): url das musicas da playlist.
+        
+        Returns:
+            [dict]: lista com as infos das musicas.
+        """        
         click.echo('Buscando as musicas...')
 
         tracks = []
@@ -108,7 +152,7 @@ class SpotifyPlaylists(Playlist):
 
         for track in response['items']:
             tracks.append({
-                'name': track['track']['name'],
+                'name': track['track']['name'].lower(),
                 'album': track['track']['album']['name'],
                 'artists': list(
                     map(
@@ -120,7 +164,16 @@ class SpotifyPlaylists(Playlist):
 
         return tracks
 
-    def get(self, name):
+    def get(self, name: str) -> dict:
+        """
+        Busca a playlist.
+
+        Arguments:
+            name {str} -- nome da playlist.
+        
+        Returns:
+            dict -- dicionario com as infos da playlist.
+        """        
         click.echo('Procurando a playlist...')
 
         playlist = self.search_playlist(name)
@@ -133,7 +186,13 @@ class SpotifyPlaylists(Playlist):
         click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
         return {}
 
-    def copy(self, playlist):
+    def copy(self, playlist: dict):
+        """
+        Copia a playlist de um serviço de streaming.
+        
+        Args:
+            playlist (dict): infos da playlist que vai ser copiada.
+        """        
         name, tracks = playlist.values()
         playlist = self.search_playlist(name)
 
@@ -155,6 +214,12 @@ class SpotifyPlaylists(Playlist):
             response = self.requests.post(f'v1/playlists/{playlist["id"]}/tracks', {'uris': playlist_tracks})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
-    
-    def playlists(self):
+
+    def playlists(self) -> []:
+        """
+        Busca todas as playlists de um usuario.
+        
+        Returns:
+            list: playlists
+        """        
         return list(self.requests.get('/v1/me/playlists'))

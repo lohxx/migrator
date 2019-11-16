@@ -99,7 +99,7 @@ class DeezerPlaylists(Playlist):
 
         for track in playlist_tracks.get('data', []):
             tracks.append({
-                'name': track['title'],
+                'name': track['title'].lower(),
                 'album': track['album']['title'],
                 'artists': [track['artist']['name']]
             })
@@ -131,13 +131,9 @@ class DeezerPlaylists(Playlist):
         tracks_found = []
         tracks_not_found = []
 
-        # album:"{track["album"]}
         for track in tracks:
             params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
             matches = self.requests.get('search/', q=params)
-
-            if track['name'] == 'Moment In Time':
-                pdb.set_trace()
 
             for match in matches['data']:
                 new_track, copy_track = self.match_track(track['name'], match['title'])
@@ -155,6 +151,6 @@ class DeezerPlaylists(Playlist):
 
         for track in (set(tracks_not_found) - set(tracks_found)):
             click.echo(f'A musica: {track} não foi encontrada')
-
+    
     def playlists(self):
-        return self.requests.get(f'/user/{self.user["id"]}/playlists')
+        return self.requests.get(f'user/{self.user["id"]}/playlists')

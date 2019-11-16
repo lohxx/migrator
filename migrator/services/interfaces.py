@@ -68,7 +68,7 @@ class Playlist(ABC):
         track_regexp = re.compile(f'({normalized_track})', flags=re.IGNORECASE)
         if track_regexp.search(normalized_match):
             return normalized_track, True
-        
+
         return normalized_track, False
 
     def _diff_tracks(self, already_existents, new_tracks):
