@@ -10,8 +10,10 @@ pip install migrator
 ## Usage
 
 ```bash
-migrator --from-service=spotify --to-service=deezer --playlist-name=xyz
+copy-playlist --from-service=spotify --to-service=deezer --playlist-name=xyz
 ```
+![usage](https://media.giphy.com/media/VGKZFS5wEo4QPAfmpM/giphy.gif)
+
 
 ## Supported services
 - Spotify
