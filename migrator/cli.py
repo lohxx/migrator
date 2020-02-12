@@ -7,6 +7,12 @@ from migrator.services.deezer import DeezerPlaylists
 from migrator.services.spotify import SpotifyPlaylists
 from migrator.services.youtube import YoutubeService
 
+"""
+TODO
+    1. Buscar as musicas de maneira paralela
+    2. Ajustar o algoritimo de match entre as musicas
+"""
+
 
 SERVICES = {
     'deezer': DeezerPlaylists,

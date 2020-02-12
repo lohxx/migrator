@@ -56,12 +56,16 @@ class DeezerAuth(ServiceAuth):
 
 
 class DeezerRequests:
+    """
+    Realiza requisições na api do deezer.
+    """    
     def __init__(self):
         self.oauth = DeezerAuth()
 
     def get(self, endpoint, q=None):
         if self.oauth.base_url not in endpoint:
-            response = self.oauth.session.get(self.oauth.base_url+endpoint, params=q).json()
+            response = self.oauth.session.get(
+                self.oauth.base_url+endpoint, params=q).json()
         else:
             response = self.oauth.session.get(endpoint, params=q).json()
 
@@ -71,7 +75,8 @@ class DeezerRequests:
         return response
 
     def post(self, endpoint, data=None):
-        response = self.oauth.session.post(self.oauth.base_url+endpoint, params=data)
+        response = self.oauth.session.post(
+            self.oauth.base_url+endpoint, params=data)
 
         if response.status_code not in (200, 201):
             raise Exception(response.text)
@@ -80,11 +85,25 @@ class DeezerRequests:
 
 
 class DeezerPlaylists(Playlist):
+    """
+    Lida com as playlists do Deezer.
+    """
+
     def __init__(self):
         self.requests = DeezerRequests()
         self.user = self.requests.get('user/me')
 
-    def search_playlist(self, name):
+    def search_playlist(self, name: str) -> dict:
+        """
+        Busca uma playlist.
+
+        Args:
+            name (str): nome da playlist
+
+        Returns:
+            [type]: [description]
+        """
+
         playlists = self.requests.get(f'/user/{self.user["id"]}/playlists')
 
         for playlists in playlists['data']:
@@ -93,7 +112,18 @@ class DeezerPlaylists(Playlist):
         else:
             return {}
 
-    def get_tracks(self, tracks_url):
+    def get_tracks(self, tracks_url: str) -> list[dict]:
+        """
+        Busca as musicas de uma playlist.
+
+        Args:
+            tracks_url (str): url das musicas da playlist.
+
+        Returns:
+            list[dict]: lista de dicionarios com informações
+            sobre as musicas da playlist.
+        """
+
         tracks = []
         playlist_tracks = self.requests.get(tracks_url)
 
@@ -106,7 +136,19 @@ class DeezerPlaylists(Playlist):
 
         return tracks
 
-    def get(self, name):
+    def get(self, name: str) -> dict:
+        """
+        Busca uma playlist.
+
+        Args:
+            name (str): nome da playlist
+
+        Returns:
+            dict: dict contendo informações da playlist.
+        """
+
+        # TODO: implementar paginação
+
         click.echo('Procurando a playlist...')
         playlist = self.search_playlist(name)
 
@@ -118,7 +160,14 @@ class DeezerPlaylists(Playlist):
         click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
         return {}
 
-    def copy(self, playlist):
+    def copy(self, playlist: dict) -> None:
+        """
+        Copia uma playlist.
+
+        Args:
+            playlist (dict): playlist que vai ser copiada.
+        """
+
         name, tracks = playlist.values()
 
         playlist = self.search_playlist(name)
@@ -131,6 +180,7 @@ class DeezerPlaylists(Playlist):
         tracks_found = []
         tracks_not_found = []
 
+        # TODO: fazer as buscas de maneira assincrona
         for track in tracks:
             params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
             matches = self.requests.get('search/', q=params)
