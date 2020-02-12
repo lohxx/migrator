@@ -138,7 +138,7 @@ class SpotifyPlaylists(Playlist):
         else:
             return {}
 
-    def get_tracks(self, tracks_url: str) -> list[dict]:        
+    def get_tracks(self, tracks_url: str) -> [dict]:        
         """
         Busca as musicas de uma playlist.
 
