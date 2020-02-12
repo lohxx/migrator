@@ -1,15 +1,11 @@
 import os
 import requests
-import pdb
-import re
-import webbrowser
+
+import click
 
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-import click
-
-from migrator import app
 from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
 
@@ -38,12 +34,13 @@ class DeezerAuth(ServiceAuth):
     def session(self):
         try:
             tokens = get_tokens(self.SERVICE_CODE)
-        except sq_exceptions.NoResultFound as e:
-            self.autorization_url({
+        except sq_exceptions.NoResultFound:
+            data = {
                 'app_id': os.environ['DEEZER_CLIENT_ID'],
                 'perms': 'manage_library, offline_access',
                 'redirect_uri': 'http://localhost:5000/deezer/callback'
-            })
+            }
+            self.autorization_url(data)
             tokens = get_tokens(self.SERVICE_CODE)
             data.update({'code': tokens.code})
             response = self._get_access_token(data)
@@ -172,9 +169,11 @@ class DeezerPlaylists(Playlist):
 
         playlist = self.search_playlist(name)
         if playlist:
-            tracks = self._diff_tracks(self.get_tracks(playlist['tracklist']), tracks)
+            tracks = self._diff_tracks(
+                self.get_tracks(playlist['tracklist']), tracks)
         else:
-            playlist = self.requests.post(f'user/{self.user["id"]}/playlists', {'title': name})
+            playlist = self.requests.post(
+                f'user/{self.user["id"]}/playlists', {'title': name})
 
         track_ids = []
         tracks_found = []
@@ -195,7 +194,10 @@ class DeezerPlaylists(Playlist):
                     tracks_not_found.append(new_track)
 
         if track_ids:
-            response = self.requests.post(f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(set(track_ids))})
+            response = self.requests.post(
+                f'playlist/{playlist["id"]}/tracks',
+                data={'songs': ','.join(set(track_ids))})
+
             if response:
                 click.echo('A playlist foi copiada com sucesso')
 

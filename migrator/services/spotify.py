@@ -1,20 +1,13 @@
-import itertools
-import json
 import os
-import pdb
-import webbrowser
 
 import click
-import requests
 
-from flask import request, Blueprint
+from flask import Blueprint
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-from migrator import app
 from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
-
 
 spotify_web = Blueprint('spotify', __name__)
 
@@ -23,8 +16,6 @@ class SpotifyAuth(ServiceAuth):
     SERVICE_CODE = 1
 
     def __init__(self):
-        callback_url = '/callback/spotify'
-
         self.oauth = OAuth2Service(
             name='spotify',
             base_url='https://api.spotify.com/v1',
@@ -45,7 +36,7 @@ class SpotifyAuth(ServiceAuth):
         try:
             tokens = get_tokens(self.SERVICE_CODE)
             data.update({'code': tokens.code})
-        except sq_exceptions.NoResultFound as e:
+        except sq_exceptions.NoResultFound:
             self.autorization_url({
                 'response_type': 'code',
                 'redirect_uri': 'http://localhost:5000/spotify/callback',
@@ -211,14 +202,17 @@ class SpotifyPlaylists(Playlist):
         # TODO: fazer as buscas de maneira assincrona
         for track in tracks:
             params = {'q': f'artist:{track["artists"][0]} track:{track["name"]} album:{track["album"]}', 'type': 'track'}
-            matches = next(self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
+            matches = next(
+                self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
 
             for match in matches.get('items'):
                 if self.match_track(track['name'], match['name']):
                     playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
-            response = self.requests.post(f'v1/playlists/{playlist["id"]}/tracks', {'uris': playlist_tracks})
+            response = self.requests.post(
+                f'v1/playlists/{playlist["id"]}/tracks', 
+                {'uris': playlist_tracks})
             if response:
                 click.echo('A playlist foi copiada com sucesso')
 
