@@ -69,11 +69,12 @@ class DeezerRequests:
             raise Exception(response['message'])
 
         paginated_response = []
-        if response.get('data'):
-            while len(paginated_response) != response.get('total'):
-                paginated_response.extend(response['data'])
+        if 'data' in response:
+            paginated_response.extend(response['data'])
+            while len(paginated_response) < response.get('total'):
                 if response.get('next'):
                     response = self.oauth.session.get(response.get('next'), params=q).json()
+                    paginated_response.extend(response['data'])
         else:
             paginated_response = response
 
@@ -193,6 +194,7 @@ class DeezerPlaylists(Playlist):
 
             for match in matches:
                 new_track, copy_track = self.match_track(track['name'], match['title'])
+
                 if copy_track and new_track not in tracks_found:
                     tracks_found.append(new_track)
                     track_ids.append(str(match['id']))

@@ -6,3 +6,4 @@ bin/
 lib64
 pyvenv.cfg
 .vscode/
+migrator.egg-info
