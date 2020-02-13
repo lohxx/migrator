@@ -57,6 +57,9 @@ class SpotifyAuth(ServiceAuth):
 
 
 class SpotifyRequests:
+    """
+    Lida com as playlists do Spotify
+    """    
     def __init__(self):
         self.oauth = SpotifyAuth()
 
@@ -71,7 +74,7 @@ class SpotifyRequests:
         Raises:
             Exception: levanta exceção quando a requisição falha.
 
-        Yields:
+        Returns:
             [type]: retorna o objeto devolvido pelo request.
         """
         response = self.oauth.session.get(endpoint, params=queryparams)
@@ -79,12 +82,19 @@ class SpotifyRequests:
             raise Exception(response.text)
 
         response = response.json()
-        while response.get('next'):
-            yield response
-            response = self.oauth.session.get(response['next']).json()
 
-        # itens sem paginação
-        yield response
+        paginated_response = []
+        if response.get("items"):
+            while len(paginated_response) != response['total']:
+                paginated_response.extend(response['items'])
+
+                if response.get('next'):
+                    response = self.oauth.session.get(
+                        response.get('next'), params=queryparams).json()
+        else:
+            paginated_response = response
+
+        return paginated_response
 
     def post(self, endpoint: str, data: dict) -> dict:
         """
@@ -122,14 +132,15 @@ class SpotifyPlaylists(Playlist):
         Returns:
             dict: infos da playlist.
         """
-        for playlist_group in self.requests.get('v1/me/playlists'):
-            for playlist in playlist_group['items']:
-                if playlist['name'] == name:
-                    return playlist
+        playlist_group = self.requests.get('v1/me/playlists')
+
+        for playlist in playlist_group:
+            if playlist['name'] == name:
+                return playlist
         else:
             return {}
 
-    def get_tracks(self, tracks_url: str) -> [dict]:        
+    def get_tracks(self, tracks_url: str) -> [dict]:
         """
         Busca as musicas de uma playlist.
 
@@ -142,9 +153,9 @@ class SpotifyPlaylists(Playlist):
         click.echo('Buscando as musicas...')
 
         tracks = []
-        response = next(self.requests.get(tracks_url))
+        playlist_tracks = self.requests.get(tracks_url)
 
-        for track in response['items']:
+        for track in playlist_tracks:
             tracks.append({
                 'name': track['track']['name'].lower(),
                 'album': track['track']['album']['name'],
@@ -205,7 +216,7 @@ class SpotifyPlaylists(Playlist):
             matches = next(
                 self.requests.get(f'/v1/search/', q=params)).get('tracks', {})
 
-            for match in matches.get('items'):
+            for match in matches:
                 if self.match_track(track['name'], match['name']):
                     playlist_tracks.append(match['uri'])
 
@@ -220,7 +231,7 @@ class SpotifyPlaylists(Playlist):
     def playlists(self) -> []:
         """
         Busca todas as playlists de um usuario.
-        
+
         Returns:
             list: playlists
         """        

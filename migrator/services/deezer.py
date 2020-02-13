@@ -55,21 +55,29 @@ class DeezerAuth(ServiceAuth):
 class DeezerRequests:
     """
     Realiza requisições na api do deezer.
-    """    
+    """
     def __init__(self):
         self.oauth = DeezerAuth()
 
     def get(self, endpoint, q=None):
         if self.oauth.base_url not in endpoint:
-            response = self.oauth.session.get(
-                self.oauth.base_url+endpoint, params=q).json()
-        else:
-            response = self.oauth.session.get(endpoint, params=q).json()
+            endpoint = self.oauth.base_url+endpoint
+
+        response = self.oauth.session.get(endpoint, params=q).json()
 
         if response.get('error'):
             raise Exception(response['message'])
 
-        return response
+        paginated_response = []
+        if response.get('data'):
+            while len(paginated_response) != response.get('total'):
+                paginated_response.extend(response['data'])
+                if response.get('next'):
+                    response = self.oauth.session.get(response.get('next'), params=q).json()
+        else:
+            paginated_response = response
+
+        return paginated_response
 
     def post(self, endpoint, data=None):
         response = self.oauth.session.post(
@@ -100,10 +108,9 @@ class DeezerPlaylists(Playlist):
         Returns:
             [type]: [description]
         """
-
         playlists = self.requests.get(f'/user/{self.user["id"]}/playlists')
 
-        for playlists in playlists['data']:
+        for playlists in playlists:
             if playlists['title'] == name:
                 return playlists
         else:
@@ -124,7 +131,7 @@ class DeezerPlaylists(Playlist):
         tracks = []
         playlist_tracks = self.requests.get(tracks_url)
 
-        for track in playlist_tracks.get('data', []):
+        for track in playlist_tracks:
             tracks.append({
                 'name': track['title'].lower(),
                 'album': track['album']['title'],
@@ -184,7 +191,7 @@ class DeezerPlaylists(Playlist):
             params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
             matches = self.requests.get('search/', q=params)
 
-            for match in matches['data']:
+            for match in matches:
                 new_track, copy_track = self.match_track(track['name'], match['title'])
                 if copy_track and new_track not in tracks_found:
                     tracks_found.append(new_track)
