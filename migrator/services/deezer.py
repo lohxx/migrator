@@ -73,8 +73,12 @@ class DeezerRequests:
             paginated_response.extend(response['data'])
             while len(paginated_response) < response.get('total'):
                 if response.get('next'):
-                    response = self.oauth.session.get(response.get('next'), params=q).json()
+                    response = self.oauth.session.get(
+                        response.get('next'), params=q).json()
                     paginated_response.extend(response['data'])
+
+                if not response.get('next') and response.get('prev'):
+                    break
         else:
             paginated_response = response
 
@@ -134,7 +138,7 @@ class DeezerPlaylists(Playlist):
 
         for track in playlist_tracks:
             tracks.append({
-                'name': track['title'].lower(),
+                'name': track['title_short'].lower(),
                 'album': track['album']['title'],
                 'artists': [track['artist']['name']]
             })
@@ -174,7 +178,6 @@ class DeezerPlaylists(Playlist):
         """
 
         name, tracks = playlist.values()
-
         playlist = self.search_playlist(name)
         if playlist:
             tracks = self._diff_tracks(

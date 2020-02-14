@@ -73,8 +73,8 @@ class SpotifyRequests:
 
             while len(paginated_response) < response['total']:
                 if response.get('next'):
-                    response = self.get(
-                        response.get('next'), queryparams=queryparams).json()
+                    response = self.oauth.session.get(
+                        response.get('next'), params=queryparams).json()
                     paginated_response.extend(response['items'])
         else:
             paginated_response = response
@@ -218,11 +218,10 @@ class SpotifyPlaylists(Playlist):
             playlist = self.requests.post('/v1/me/playlists', {"name": name, "public": True})
 
         playlist_tracks = []
-        
+
         # TODO: fazer as buscas de maneira assincrona
         for track in tracks:
             params = {'q': f'artist:{track["artists"][0]} track:{track["name"]} album:{track["album"]}', 'type': 'track'}
-
             matches = self.requests.get(
                 f'/v1/search/', queryparams=params).get('tracks', {})
 
