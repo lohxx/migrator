@@ -44,7 +44,7 @@ def execute_copy(origin, destination, playlist_name):
     else:
         playlist = origin_service.get(playlist_name)
         if playlist:
-            asyncio.wait(destination_service.copy(playlist))
+            destination_service.clone(playlist)
 
     end = time.time()
     click.echo(f'Levou um total de {end-start} para executar')

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import functools
 
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -12,6 +13,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URI']
 db = SQLAlchemy(app)
 db.init_app(app)
 
+
+
+def measure_time(fn):
+    @functools.wraps(fn)
+    def deco(*args, **kwargs):
+        start = time.time()
+        fn(*args, **kwargs)
+        end = time.time()
+    
 
 @app.route('/deezer/callback')
 def deezer_callback():

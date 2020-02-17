@@ -11,6 +11,9 @@ from migrator.services.interfaces import Playlist, ServiceAuth
 
 
 class SpotifyAuth(ServiceAuth):
+    """
+    Classe responsavel pela autenticacao com o Spotify
+    """
     SERVICE_CODE = 1
 
     def __init__(self):
@@ -55,8 +58,8 @@ class SpotifyAuth(ServiceAuth):
 
 class SpotifyRequests:
     """
-    Lida com as playlists do Spotify
-    """
+    Realiza requisições na api do Spotify
+    """    
 
     def __init__(self):
         self.oauth = SpotifyAuth()
@@ -130,6 +133,10 @@ class SpotifyRequests:
 
 
 class SpotifyPlaylists(Playlist):
+    """
+    Lida com as playlists do Spotify
+    """
+   
     def __init__(self):
         self.requests = SpotifyRequests()
 

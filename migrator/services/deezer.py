@@ -174,7 +174,6 @@ class DeezerPlaylists(Playlist):
         Returns:
             dict: dict contendo informações da playlist.
         """
-
         click.echo('Procurando a playlist...')
         playlist = self.search_playlist(name)
 

@@ -48,7 +48,7 @@ class ServiceAuth(ABC):
 
 class Playlist(ABC):
     @abstractmethod
-    def copy(self, playlist):
+    def clone(self, playlist):
         pass
 
     @abstractmethod
