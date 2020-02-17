@@ -16,6 +16,7 @@ class SpotifyAuth(ServiceAuth):
     SERVICE_CODE = 1
 
     def __init__(self):
+        self.session = None
         self.oauth = OAuth2Service(
             name='spotify',
             base_url='https://api.spotify.com/v1',
@@ -25,17 +26,13 @@ class SpotifyAuth(ServiceAuth):
             access_token_url='https://accounts.spotify.com/api/token'
         )
 
-    @property
-    def session(self):
-        session = None
-        data = {
-            'grant_type': 'authorization_code',
-            'redirect_uri': 'http://localhost:5000/spotify/callback'
-        }
+    def get_access_token(self, params):
+        save_tokens(self.SERVICE_CODE, params)
+        self.session
 
+    def authenticate(self):
         try:
             tokens = get_tokens(self.SERVICE_CODE)
-            data.update({'code': tokens.code})
         except sq_exceptions.NoResultFound:
             self.autorization_url({
                 'response_type': 'code',
@@ -47,21 +44,28 @@ class SpotifyAuth(ServiceAuth):
                     'playlist-modify-private'
                 ])
             })
-            tokens = get_tokens(self.SERVICE_CODE)
-            data.update({'code': tokens.code})
-
-        session = self._get_access_token(data)
-        save_tokens(self.SERVICE_CODE, session.access_token_response.json())
-
-        return session
+        else:
+            self.session = self._get_access_token({
+                'code': tokens.code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': 'http://localhost:5000/spotify/callback'
+            })
+            save_tokens(
+                self.SERVICE_CODE,
+                self.session.access_token_response.json())
 
 
 class SpotifyRequests:
     """
     Lida com as playlists do Spotify
-    """    
+    """
+
     def __init__(self):
         self.oauth = SpotifyAuth()
+
+        # tenta conseguir a permissão do usuario
+        # para ler e modificar as playlists
+        self.oauth.authenticate()
 
     @staticmethod
     def paginate(response: dict, queryparams=None):

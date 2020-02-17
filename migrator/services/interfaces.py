@@ -16,9 +16,10 @@ class ServiceAuth(ABC):
 
     def __init__(self):
         self.oauth = None
-       
+        self.session = None
+
     @abstractmethod
-    def session(self):
+    def authenticate(self):
         pass
 
     def _get_access_token(self, args):
@@ -27,7 +28,7 @@ class ServiceAuth(ABC):
                 data=args,
                 decoder=json.loads,
             )
-        except Exception as e:
+        except Exception:
             session = self.oauth.get_auth_session(
                 decoder=json.loads,
                 data={
@@ -57,7 +58,7 @@ class Playlist(ABC):
     @abstractmethod
     def get(self, name):
         pass
-    
+
     @abstractmethod
     def search_playlist(self, name):
         pass
@@ -79,12 +80,13 @@ class Playlist(ABC):
         if not already_existents:
             return new_tracks
 
-        for existent, new in itertools.zip_longest(already_existents, new_tracks):
+        for existent, new in itertools.zip_longest(
+                already_existents, new_tracks):
             if not all([existent, new]):
                 continue
 
-            dict_new[f'{new["name"]} - {new["artists"][0]}'] = new
-            dict_existents[f'{existent["name"]} - {existent["artists"][0]}'] = existent
+            dict_new[f'{new["name"]} - {new["artists"][0]}'.lower()] = new
+            dict_existents[f'{existent["name"]} - {existent["artists"][0]}'.lower()] = existent
 
         for track_key in dict_new:
             if track_key not in dict_existents:

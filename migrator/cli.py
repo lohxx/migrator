@@ -1,7 +1,10 @@
 import pdb
 import pprint
 import click
+import asyncio
+import time
 
+from migrator import app
 
 from migrator.services.deezer import DeezerPlaylists
 from migrator.services.spotify import SpotifyPlaylists
@@ -23,17 +26,56 @@ SERVICES = {
 options = SERVICES.keys()
 
 
+class AuthenticationFail(Exception):
+    pass
+
+
 @click.group()
 def cli():
     pass
 
 
 def execute_copy(origin, destination, playlist_name):
-    origin_service = origin()
-    destination_service = destination()
-    playlist = origin_service.get(playlist_name)
-    if playlist:
-        destination_service.copy(playlist)
+    start = time.time()
+    try:
+        origin_service, destination_service = authenticate(origin, destination)
+    except Exception as e:
+        click.echo(e)
+    else:
+        playlist = origin_service.get(playlist_name)
+        if playlist:
+            asyncio.wait(destination_service.copy(playlist))
+
+    end = time.time()
+    click.echo(f'Levou um total de {end-start} para executar')
+
+
+def authenticate(origin, destination):
+    """
+    Tenta se autenticar nos serviços de streaming
+
+    Args:
+        origin ([type]): [description]
+        destination ([type]): [description]
+
+    Raises:
+        AuthenticationFail: [description]
+        AuthenticationFail: [description]
+
+    Returns:
+        [type]: [description]
+    """
+    try:
+        origin_service = origin()
+    except Exception as e:
+        raise AuthenticationFail(e)
+
+    try:
+        destination_service = destination()
+    except Exception as e:
+        raise AuthenticationFail(e)
+
+    return origin_service, destination_service
 
 
 @cli.command()

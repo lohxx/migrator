@@ -35,16 +35,25 @@ def update_or_create(service, kwargs):
             setattr(obj, attr, value)
 
         return obj
-    except sq_exceptions.NoResultFound as e:
+    except sq_exceptions.NoResultFound:
         return TokensManager(**kwargs)
 
 
 def get_tokens(service):
     return TokensManager.query.filter_by(
-        service=service
+        service=service,
     ).order_by(
         TokensManager.id.desc()
     ).one()
+
+
+def delete_tokens(**params):
+    TokensManager.query.filter_by(**params).delete()
+    try:
+        db.session.commit()
+    except Exception as e:
+        click.echo(e)
+        db.session.rollback()
 
 
 class TokensManager(db.Model):
