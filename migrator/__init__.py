@@ -18,7 +18,7 @@ def deezer_callback():
     from migrator.services.deezer import DeezerAuth
 
     if request.args.get('code'):
-        DeezerAuth().get_access_token(request.args)
+        DeezerAuth().save_code_and_authenticate(request.args)
 
     return 'token salvo'
 
@@ -28,7 +28,7 @@ def spotify_callback():
     from migrator.services.spotify import SpotifyAuth
 
     if request.args.get('code'):
-        SpotifyAuth().get_access_token(request.args)
+        SpotifyAuth().save_code_and_authenticate(request.args)
 
     return "token salvo"
 

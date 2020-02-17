@@ -1,8 +1,7 @@
 import os
 import sys
 import json
-import asyncio
-import aiohttp
+import concurrent.futures
 
 import click
 import requests
@@ -39,7 +38,7 @@ class DeezerAuth(ServiceAuth):
             click.echo(response.content)
             sys.exit(1)
 
-    def get_access_token(self, token):
+    def save_code_and_authenticate(self, token):
         save_tokens(self.SERVICE_CODE, token)
         self.authenticate()
 
@@ -74,7 +73,7 @@ class DeezerRequests:
         # para ler e modificar as playlists
         self.oauth.authenticate()
 
-    def paginate(self, response):
+    def paginate(self, response, params=None):
         paginated_response = []
 
         if 'data' in response:
@@ -82,7 +81,7 @@ class DeezerRequests:
             while len(paginated_response) < response.get('total'):
                 if response.get('next'):
                     response = self.oauth.session.get(
-                        response.get('next'), params=q).json()
+                        response.get('next'), params=params).json()
                     paginated_response.extend(response['data'])
 
                 if not response.get('next') and response.get('prev'):
@@ -91,17 +90,6 @@ class DeezerRequests:
             paginated_response = response
 
         return paginated_response
-
-    async def get_async(self, endpoint=None, params=None):
-        response = {}
-
-        async with aiohttp.ClientSession() as session:
-            session.params = self.session.params
-            async with session.get('https://api.deezer.com/search/', params=params) as resp:
-                response = await resp.read()
-                response = self.paginate(json.loads(response))
-
-        return response
 
     def get(self, endpoint, querystring=None):
         if self.oauth.base_url not in endpoint:
@@ -198,7 +186,16 @@ class DeezerPlaylists(Playlist):
         click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
         return {}
 
-    def copy(self, playlist: dict) -> None:
+    def make_futures(self, executor, tracks):
+        futures = {}
+
+        for track in tracks:
+            search_params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
+            futures[executor.submit(self.requests.get, 'search/', search_params)] = track
+
+        return futures
+
+    def clone(self, playlist: dict) -> None:
         """
         Copia uma playlist.
 
@@ -220,32 +217,38 @@ class DeezerPlaylists(Playlist):
             playlist = self.requests.post(
                 f'user/{self.user["id"]}/playlists', {'title': name})
 
-        track_ids = []
-        tracks_found = []
-        tracks_not_found = []
+        track_ids = set()
+        tracks_found = set()
+        tracks_not_found = set()
 
-        # TODO: fazer as buscas de maneira assincrona
-        for track in tracks:
-            params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
-            matches = self.requests.get('search/', q=params)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_track = self.make_futures(executor, tracks)
 
-            for match in matches:
-                new_track, copy_track = self.match_track(track['name'], match['title'])
+            for future in concurrent.futures.as_completed(future_to_track):
+                track = future_to_track[future]
 
-                if copy_track and new_track not in tracks_found:
-                    tracks_found.append(new_track)
-                    track_ids.append(str(match['id']))
-                    continue
+                try:
+                    matches = future.result()
+                except Exception as exc:
+                    click.echo(exc)
                 else:
-                    tracks_not_found.append(new_track)
+                    for match in matches:
+                        new_track, copy_track = self.match_track(
+                            track['name'], match['title'])
 
-        if track_ids:
-            response = self.requests.post(
-                f'playlist/{playlist["id"]}/tracks',
-                data={'songs': ','.join(set(track_ids))})
+                        if copy_track and new_track not in tracks_found:
+                            tracks_found.add(new_track)
+                            track_ids.add(str(match['id']))
+                        else:
+                            tracks_not_found.add(new_track)
 
-            if response:
-                click.echo('A playlist foi copiada com sucesso')
+            if track_ids:
+                url = f'playlist/{playlist["id"]}/tracks'
+                response = self.requests.post(
+                    url, data={'songs': ','.join(track_ids)})
 
-        for track in (set(tracks_not_found) - set(tracks_found)):
+                if response:
+                    click.echo('A playlist foi copiada com sucesso')
+
+        for track in tracks_not_found - tracks_found:
             click.echo(f'A musica: {track} não foi encontrada')

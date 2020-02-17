@@ -1,15 +1,13 @@
 import os
+import concurrent.futures
 
 import click
 
-from flask import Blueprint
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
 from migrator.services.tokens import save_tokens, get_tokens
 from migrator.services.interfaces import Playlist, ServiceAuth
-
-spotify_web = Blueprint('spotify', __name__)
 
 
 class SpotifyAuth(ServiceAuth):
@@ -26,9 +24,9 @@ class SpotifyAuth(ServiceAuth):
             access_token_url='https://accounts.spotify.com/api/token'
         )
 
-    def get_access_token(self, params):
+    def save_code_and_authenticate(self, params):
         save_tokens(self.SERVICE_CODE, params)
-        self.session
+        self.authenticate()
 
     def authenticate(self):
         try:
@@ -205,7 +203,16 @@ class SpotifyPlaylists(Playlist):
         click.echo('Não foi possivel achar a playlist, verifique se o nome esta correto')
         return {}
 
-    def copy(self, playlist: dict) -> None:
+    def make_futures(self, executor, tracks):
+        futures = {}
+
+        for track in tracks:
+            params = {'q': f'artist:{track["artists"][0]} track:{track["name"]} album:{track["album"]}', 'type': 'track'}
+            futures[executor.submit(self.requests.get, '/v1/search/', params)] = track
+
+        return futures
+
+    def clone(self, playlist: dict) -> None:
         """
         Copia a playlist de um serviço de streaming.
 
@@ -223,31 +230,29 @@ class SpotifyPlaylists(Playlist):
 
         playlist_tracks = []
 
-        # TODO: fazer as buscas de maneira assincrona
-        for track in tracks:
-            params = {'q': f'artist:{track["artists"][0]} track:{track["name"]} album:{track["album"]}', 'type': 'track'}
-            matches = self.requests.get(
-                f'/v1/search/', queryparams=params).get('tracks', {})
+        # Não duplicar as musicas na hora de copiar
 
-            matches_paginated = SpotifyRequests.paginate(matches)
-            for match in matches_paginated:
-                if self.match_track(track['name'], match['name']):
-                    playlist_tracks.append(match['uri'])
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_track = self.make_futures(executor, tracks)
+
+            for future in concurrent.futures.as_completed(future_to_track):
+                track = future_to_track[future]
+
+                try:
+                    matches = future.result()
+                except Exception as exc:
+                    click.echo(exc)
+                else:
+                    matches_paginated = SpotifyRequests.paginate(matches.get('tracks', {}))
+                    for match in matches_paginated:
+                        if self.match_track(track['name'], match['name']):
+                            playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
             response = self.requests.post(
-                f'v1/playlists/{playlist["id"]}/tracks', 
-                {'uris': playlist_tracks})
+                f'v1/playlists/{playlist["id"]}/tracks',
+                {'uris': playlist_tracks}
+            )
+
             if response:
                 click.echo('A playlist foi copiada com sucesso')
-
-    @spotify_web.route('/spotify/playlists', methods=['GET'])
-    def playlists(self) -> []:
-        """
-        Busca todas as playlists de um usuario.
-
-        Returns:
-            list: playlists
-        """        
-        Playlist = SpotifyPlaylists()
-        return list(Playlist.requests.get('/v1/me/playlists'))
