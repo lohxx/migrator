@@ -51,20 +51,9 @@ def execute_copy(origin, destination, playlist_name):
 
 
 @cli.command()
-def authenticate(origin, destination):
+def authenticate():
     """
     Tenta se autenticar nos serviços de streaming
-
-    Args:
-        origin ([type]): [description]
-        destination ([type]): [description]
-
-    Raises:
-        AuthenticationFail: [description]
-        AuthenticationFail: [description]
-
-    Returns:
-        [type]: [description]
     """
     from service.deezer import DeezerAuth 
     from services.spotify import SpotifyAuth
@@ -73,11 +62,15 @@ def authenticate(origin, destination):
         DeezerAuth().authenticate()
     except Exception as e:
         click.echo(e)
+    else:
+        click.echo('Sua autenticação no Deezer foi bem sucedida')
 
     try:
         SpotifyAuth().authenticate()
     except Exception as e:
         click.echo(e)
+    else:
+        click.echo('Sua autenticação no Spotify foi bem sucedida')
 
 
 @cli.command()
