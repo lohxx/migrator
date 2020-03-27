@@ -1,5 +1,6 @@
 import os
 import concurrent.futures
+from typing import Union, TypeVar
 
 import click
 
@@ -46,6 +47,7 @@ class SpotifyAuth(ServiceAuth):
                 ])
             })
         else:
+            # atualiza o access_token se a autenticação der certo
             self.session = self._get_access_token({
                 'code': tokens.code,
                 'grant_type': 'authorization_code',
@@ -69,7 +71,17 @@ class SpotifyRequests:
         self.oauth.authenticate()
 
     @staticmethod
-    def paginate(response: dict, queryparams=None):
+    def paginate(response: dict, queryparams: dict = None) -> Union[dict, list]:
+        """
+        Junta todos os resultados paginados de um request.
+
+        Args:
+            response (dict): resposta devolvida pela api do Spotify.
+            queryparams (dict, optional): [description]. Defaults to None.
+
+        Returns:
+            Union[dict, list]: [description]
+        """
         self = SpotifyRequests()
 
         paginated_response = []
@@ -136,7 +148,7 @@ class SpotifyPlaylists(Playlist):
     """
     Lida com as playlists do Spotify
     """
-   
+
     def __init__(self):
         self.requests = SpotifyRequests()
 
@@ -239,7 +251,7 @@ class SpotifyPlaylists(Playlist):
 
         # Não duplicar as musicas na hora de copiar
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_track = self.make_futures(executor, tracks)
 
             for future in concurrent.futures.as_completed(future_to_track):
@@ -250,12 +262,14 @@ class SpotifyPlaylists(Playlist):
                 except Exception as exc:
                     click.echo(exc)
                 else:
-                    matches_paginated = SpotifyRequests.paginate(matches.get('tracks', {}))
+                    matches_paginated = SpotifyRequests.paginate(
+                        matches.get('tracks', {}))
                     for match in matches_paginated:
                         if self.match_track(track['name'], match['name']):
                             playlist_tracks.append(match['uri'])
 
         if playlist_tracks:
+            # limitar a 100 ids por request
             response = self.requests.post(
                 f'v1/playlists/{playlist["id"]}/tracks',
                 {'uris': playlist_tracks}

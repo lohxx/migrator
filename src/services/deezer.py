@@ -38,11 +38,21 @@ class DeezerAuth(ServiceAuth):
             click.echo(response.content)
             sys.exit(1)
 
-    def save_code_and_authenticate(self, token):
-        save_tokens(self.SERVICE_CODE, token)
-        self.authenticate()
+    def save_code_and_authenticate(self, code):
+        save_tokens(self.SERVICE_CODE, code)
+        self.authenticate(code)
 
-    def authenticate(self):
+    def authenticate(self, code=None):
+        import pdb; pdb.set_trace()
+        if code:
+            response = self._get_access_token({
+                'output': 'json',
+                'code': code,
+                'app_id': self.oauth.client_id,
+                'secret': self.oauth.client_secret,
+            })
+            save_tokens(self.SERVICE_CODE, response)
+
         try:
             tokens = get_tokens(self.SERVICE_CODE)
         except sq_exceptions.NoResultFound:
@@ -51,14 +61,8 @@ class DeezerAuth(ServiceAuth):
                 'perms': 'manage_library, offline_access',
                 'redirect_uri': 'http://localhost:5000/deezer/callback'
             })
-            response = self._get_access_token({
-                'output': 'json',
-                'code': tokens.code,
-                'app_id': self.oauth.client_id,
-                'secret': self.oauth.client_secret,
-            })
-            save_tokens(self.SERVICE_CODE, response)
         else:
+            tokens = get_tokens(self.SERVICE_CODE)
             self.session.params = {'access_token': tokens.access_token}
 
 
@@ -95,7 +99,8 @@ class DeezerRequests:
         if self.oauth.base_url not in endpoint:
             endpoint = self.oauth.base_url+endpoint
 
-        response = self.oauth.session.get(endpoint, params=querystring).json()
+        response = self.oauth.session.get(endpoint, params=querystring)
+        response = response.json()
 
         if response.get('error'):
             click.echo(response['error']['message'])
@@ -189,7 +194,7 @@ class DeezerPlaylists(Playlist):
         futures = {}
 
         for track in tracks:
-            search_params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}"&strict=on'}
+            search_params = {'q': f'track:"{track["name"]}" artist:"{track["artists"][0]}" album:"{track["album"]}"&strict=on'}
             futures[executor.submit(self.requests.get, 'search/', search_params)] = track
 
         return futures
@@ -236,10 +241,10 @@ class DeezerPlaylists(Playlist):
                             track['name'], match['title'])
 
                         if copy_track and new_track not in tracks_found:
-                            tracks_found.add(new_track)
+                            tracks_found.add(new_track.title())
                             track_ids.add(str(match['id']))
                         else:
-                            tracks_not_found.add(new_track)
+                            tracks_not_found.add(new_track.title())
 
             if track_ids:
                 url = f'playlist/{playlist["id"]}/tracks'

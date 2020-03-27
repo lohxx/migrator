@@ -70,7 +70,7 @@ class Playlist(ABC):
         if track_regexp.search(normalized_match):
             return normalized_track, True
 
-        return normalized_track, False
+        return track, False
 
     def _diff_tracks(self, already_existents, new_tracks):
         tracks_to_be_copied = []
