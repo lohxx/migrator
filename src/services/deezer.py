@@ -245,12 +245,13 @@ class DeezerPlaylists(Playlist):
 
                         if copy_track and new_track not in tracks_cache:
                             tracks_cache[new_track] = str(match['id'])
-            # if tracks_cache:
-            #     response = self.requests.post(
-            #         f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(tracks_cache.values())})
 
-            #     if response:
-            #         click.echo('A playlist foi copiada com sucesso')
+            if tracks_cache:
+                response = self.requests.post(
+                    f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(tracks_cache.values())})
+
+                if response:
+                    click.echo('A playlist foi copiada com sucesso')
 
         # for track in tracks_not_found - tracks_found:
         #     click.echo(f'A musica: {track} não foi encontrada')
