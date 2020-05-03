@@ -7,8 +7,14 @@ import click
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-from migrator.services.tokens import save_tokens, get_tokens
-from migrator.services.interfaces import Playlist, ServiceAuth
+from src.services.tokens import save_tokens, get_tokens
+from src.services.interfaces import Playlist, ServiceAuth
+
+
+def chunks(lista, step=100): 
+    for i in range(0, len(lista), step):
+        yield lista[i: i+step]
+
 
 
 class SpotifyAuth(ServiceAuth):
@@ -247,9 +253,7 @@ class SpotifyPlaylists(Playlist):
         else:
             playlist = self.requests.post('/v1/me/playlists', {"name": name, "public": True})
 
-        playlist_tracks = []
-
-        # Não duplicar as musicas na hora de copiar
+        tracks_cache = {}
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_track = self.make_futures(executor, tracks)
@@ -264,16 +268,17 @@ class SpotifyPlaylists(Playlist):
                 else:
                     matches_paginated = SpotifyRequests.paginate(
                         matches.get('tracks', {}))
-                    for match in matches_paginated:
-                        if self.match_track(track['name'], match['name']):
-                            playlist_tracks.append(match['uri'])
 
-        if playlist_tracks:
-            # limitar a 100 ids por request
-            response = self.requests.post(
-                f'v1/playlists/{playlist["id"]}/tracks',
-                {'uris': playlist_tracks}
-            )
+                    for match in matches_paginated:
+                        normalized_track, matches = self.match_track(track['name'], match['name'])
+
+                        if matches and match['name'] not in tracks_cache:
+                            tracks_cache[normalized_track] = match['uri'] 
+
+        if tracks_cache:
+            for chunk_ids in chunks(list(tracks_cache.values()), step=100):
+                response = self.requests.post(
+                    f'v1/playlists/{playlist["id"]}/tracks', {'uris': chunk_ids})
 
             if response:
                 click.echo('A playlist foi copiada com sucesso')

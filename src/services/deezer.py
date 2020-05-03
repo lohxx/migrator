@@ -9,8 +9,8 @@ import requests
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-from migrator.services.tokens import save_tokens, get_tokens
-from migrator.services.interfaces import Playlist, ServiceAuth
+from src.services.tokens import save_tokens, get_tokens
+from src.services.interfaces import Playlist, ServiceAuth
 
 
 class DeezerAuth(ServiceAuth):
@@ -32,30 +32,35 @@ class DeezerAuth(ServiceAuth):
     def _get_access_token(self, args):
         session = requests.Session()
         response = session.get(self.oauth.access_token_url, params=args)
+
         try:
             return response.json()
         except json.decoder.JSONDecodeError:
             click.echo(response.content)
             sys.exit(1)
 
-    def save_code_and_authenticate(self, code):
-        save_tokens(self.SERVICE_CODE, code)
+    def save_code_and_authenticate(self, response):
+        code = response.get('code', '')
+        save_tokens(self.SERVICE_CODE, response)
         self.authenticate(code)
 
     def authenticate(self, code=None):
-        import pdb; pdb.set_trace()
-        if code:
-            response = self._get_access_token({
-                'output': 'json',
-                'code': code,
-                'app_id': self.oauth.client_id,
-                'secret': self.oauth.client_secret,
-            })
-            save_tokens(self.SERVICE_CODE, response)
-
         try:
             tokens = get_tokens(self.SERVICE_CODE)
-        except sq_exceptions.NoResultFound:
+
+            if not tokens.code:
+                raise ValueError
+
+            if tokens.code and not tokens.access_token:
+                response = self._get_access_token({
+                    'output': 'json',
+                    'code': code,
+                    'app_id': self.oauth.client_id,
+                    'secret': self.oauth.client_secret,
+                })
+                save_tokens(self.SERVICE_CODE, response)
+
+        except Exception:
             self.autorization_url({
                 'app_id': self.oauth.client_id,
                 'perms': 'manage_library, offline_access',
@@ -98,7 +103,6 @@ class DeezerRequests:
     def get(self, endpoint, querystring=None):
         if self.oauth.base_url not in endpoint:
             endpoint = self.oauth.base_url+endpoint
-
         response = self.oauth.session.get(endpoint, params=querystring)
         response = response.json()
 
@@ -221,11 +225,9 @@ class DeezerPlaylists(Playlist):
             playlist = self.requests.post(
                 f'user/{self.user["id"]}/playlists', {'title': name})
 
-        track_ids = set()
-        tracks_found = set()
-        tracks_not_found = set()
+        tracks_cache = {}
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_track = self.make_futures(executor, tracks)
 
             for future in concurrent.futures.as_completed(future_to_track):
@@ -237,22 +239,18 @@ class DeezerPlaylists(Playlist):
                     click.echo(exc)
                 else:
                     for match in matches:
+                        print(match['title'])
                         new_track, copy_track = self.match_track(
                             track['name'], match['title'])
 
-                        if copy_track and new_track not in tracks_found:
-                            tracks_found.add(new_track.title())
-                            track_ids.add(str(match['id']))
-                        else:
-                            tracks_not_found.add(new_track.title())
+                        if copy_track and new_track not in tracks_cache:
+                            tracks_cache[new_track] = str(match['id'])
+            # if tracks_cache:
+            #     response = self.requests.post(
+            #         f'playlist/{playlist["id"]}/tracks', data={'songs': ','.join(tracks_cache.values())})
 
-            if track_ids:
-                url = f'playlist/{playlist["id"]}/tracks'
-                response = self.requests.post(
-                    url, data={'songs': ','.join(track_ids)})
+            #     if response:
+            #         click.echo('A playlist foi copiada com sucesso')
 
-                if response:
-                    click.echo('A playlist foi copiada com sucesso')
-
-        for track in tracks_not_found - tracks_found:
-            click.echo(f'A musica: {track} não foi encontrada')
+        # for track in tracks_not_found - tracks_found:
+        #     click.echo(f'A musica: {track} não foi encontrada')

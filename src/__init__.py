@@ -25,7 +25,7 @@ def measure_time(fn):
 
 @app.route('/deezer/callback')
 def deezer_callback():
-    from migrator.services.deezer import DeezerAuth
+    from src.services.deezer import DeezerAuth
 
     if request.args.get('code'):
         DeezerAuth().save_code_and_authenticate(request.args)
@@ -35,7 +35,7 @@ def deezer_callback():
 
 @app.route('/spotify/callback')
 def spotify_callback():
-    from migrator.services.spotify import SpotifyAuth
+    from src.services.spotify import SpotifyAuth
 
     if request.args.get('code'):
         SpotifyAuth().save_code_and_authenticate(request.args)
@@ -45,7 +45,7 @@ def spotify_callback():
 
 def init_db():
     """ Inicializa o banco de dados """
-    from migrator.services.tokens import TokensManager
+    from src.services.tokens import TokensManager
     db.create_all()
 
 

@@ -4,7 +4,7 @@ import os
 import click
 import sqlalchemy.orm.exc as sq_exceptions
 
-from migrator import db
+from src import db
 
 
 def save_tokens(service, tokens):

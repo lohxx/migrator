@@ -8,7 +8,7 @@ import webbrowser
 from abc import ABC, abstractmethod
 from flask import request
 
-from migrator.services.tokens import save_tokens, get_tokens
+from src.services.tokens import save_tokens, get_tokens
 
 
 class ServiceAuth(ABC):
@@ -67,6 +67,7 @@ class Playlist(ABC):
         normalized_track = re.sub("[^\w\s\.,']+", "", track)
         normalized_match = re.sub("[^\w\s\.,']+", "", match)
         track_regexp = re.compile(f'({normalized_track})', flags=re.IGNORECASE)
+
         if track_regexp.search(normalized_match):
             return normalized_track, True
 
