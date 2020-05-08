@@ -12,7 +12,7 @@ pip install migrator
 ```bash
 copy-playlist --from-service=spotify --to-service=deezer --playlist-name=xyz
 ```
-![usage](https://media.giphy.com/media/VGKZFS5wEo4QPAfmpM/giphy.gif)
+![usage](https://github.com/lohxx/migrator/blob/master/versao_final.gif)
 
 
 ## Supported services
