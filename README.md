@@ -18,4 +18,4 @@ copy-playlist --from-service=spotify --to-service=deezer --playlist-name=xyz
 ## Supported services
 - Spotify
 - Deezer
-- Youtube
+- ~~Youtube~~
