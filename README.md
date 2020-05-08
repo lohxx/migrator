@@ -1,10 +1,10 @@
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install migrator or clone this repository.
+clone this repository and run the pip command.
 
 ```bash
-pip install migrator
+pip install .
 ```
 
 ## Usage
@@ -12,10 +12,10 @@ pip install migrator
 ```bash
 copy-playlist --from-service=spotify --to-service=deezer --playlist-name=xyz
 ```
-![usage](https://media.giphy.com/media/VGKZFS5wEo4QPAfmpM/giphy.gif)
+![usage](https://github.com/lohxx/migrator/blob/master/versao_final.gif)
 
 
 ## Supported services
 - Spotify
 - Deezer
-- Youtube
+- ~~Youtube~~
