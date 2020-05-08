@@ -1,10 +1,10 @@
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install migrator or clone this repository.
+clone this repository and run the pip command.
 
 ```bash
-pip install migrator
+pip install .
 ```
 
 ## Usage
