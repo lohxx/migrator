@@ -64,11 +64,11 @@ class Playlist(ABC):
         pass
 
     def match_track(self, track, match):
-        normalized_track = re.sub("[^\w\s\.,']+", "", track)
-        normalized_match = re.sub("[^\w\s\.,']+", "", match)
-        track_regexp = re.compile(f'({normalized_track})', flags=re.IGNORECASE)
-
-        if track_regexp.search(normalized_match):
+        normalized_track = re.sub("[^\w\s\.,']+", "", track).lower().replace(' ', '')
+        normalized_match = re.sub("[^\w\s\.,']+", "", match).lower().replace(' ', '')
+        track_regexp = re.compile(f'({normalized_match})', flags=re.IGNORECASE)
+        print(f'{normalized_match}, {normalized_track}, {track_regexp.search(normalized_track)}')
+        if track_regexp.search(normalized_track):
             return normalized_track, True
 
         return track, False
