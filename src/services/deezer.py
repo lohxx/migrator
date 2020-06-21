@@ -45,7 +45,7 @@ class DeezerAuth(ServiceAuth):
         try:
             tokens = read_pickle()
             tokens['deezer']['code'] = code
-            write_keys('', tokens)
+            write_keys(tokens)
         except Exception:
             pass
 
@@ -62,7 +62,7 @@ class DeezerAuth(ServiceAuth):
             })
             return
 
-        if tokens['deezer']['code'] and not tokens['deezer']['access_token']:
+        if not tokens['deezer']['access_token']:
             # Tenta pegar o access_token
             response = self._get_access_token({
                 'output': 'json',
@@ -72,12 +72,13 @@ class DeezerAuth(ServiceAuth):
             })
 
             tokens['deezer']['access_token'] = response['access_token']
-            write_keys('', tokens)
+            write_keys(tokens)
 
-        elif tokens['deezer']['code'] and tokens['deezer']['access_token']:
-            # o token do deezer não expira
-            self.session.params = {
-                'access_token': tokens['deezer']['access_token']}
+            return
+
+        # associa o token com a session
+        self.session.params = {
+            'access_token': tokens['deezer']['access_token']}
 
 
 class DeezerRequests:

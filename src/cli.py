@@ -52,8 +52,8 @@ def execute_copy(origin, destination, playlist_name):
     start = time.time()
 
     playlist = origin.get(playlist_name)
-    # if playlist:
-    #     destination.clone(playlist)
+    if playlist:
+        destination.clone(playlist)
 
     end = time.time()
     click.echo(f'Levou um total de {end-start} para executar')

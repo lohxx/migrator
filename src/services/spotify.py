@@ -35,7 +35,7 @@ class SpotifyAuth(ServiceAuth):
         try:
             tokens = read_pickle()
             tokens['spotify']['code'] = params['code']
-            write_keys('', tokens)
+            write_keys(tokens)
         except Exception:
             pass
 
@@ -66,7 +66,7 @@ class SpotifyAuth(ServiceAuth):
 
                 tokens['spotify'].update(
                     self.session.access_token_response.json()) 
-                write_keys('', tokens)
+                write_keys(tokens)
         except Exception:
             pass
 

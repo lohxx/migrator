@@ -23,7 +23,7 @@ def read_pickle():
     return obj
 
 
-def write_keys(key, new_values):
+def write_keys(new_values):
     with open('tokens.pickle', 'wb') as f:
         pickle.dump(new_values, f, pickle.HIGHEST_PROTOCOL)
 
