@@ -8,11 +8,10 @@ import webbrowser
 from abc import ABC, abstractmethod
 from flask import request
 
-from src.services.tokens import save_tokens, get_tokens
+from src import read_pickle
 
 
 class ServiceAuth(ABC):
-    SERVICE_CODE = None
 
     def __init__(self):
         self.oauth = None
@@ -29,11 +28,12 @@ class ServiceAuth(ABC):
                 decoder=json.loads,
             )
         except Exception:
+            tokens = read_pickle()
             session = self.oauth.get_auth_session(
                 decoder=json.loads,
                 data={
                     'grant_type': 'refresh_token',
-                    'refresh_token': get_tokens(self.SERVICE_CODE).refresh_token
+                    'refresh_token': tokens['spotify']['refresh_token']
                 }
             )
 

@@ -5,9 +5,8 @@ from typing import Union, TypeVar
 import click
 
 from rauth import OAuth2Service
-import sqlalchemy.orm.exc as sq_exceptions
 
-from src.services.tokens import save_tokens, get_tokens
+from src import read_pickle, write_keys
 from src.services.interfaces import Playlist, ServiceAuth
 
 
@@ -16,12 +15,10 @@ def chunks(lista, step=100):
         yield lista[i: i+step]
 
 
-
 class SpotifyAuth(ServiceAuth):
     """
     Classe responsavel pela autenticacao com o Spotify
     """
-    SERVICE_CODE = 1
 
     def __init__(self):
         self.session = None
@@ -35,33 +32,43 @@ class SpotifyAuth(ServiceAuth):
         )
 
     def save_code_and_authenticate(self, params):
-        save_tokens(self.SERVICE_CODE, params)
+        try:
+            tokens = read_pickle()
+            tokens['spotify']['code'] = params['code']
+            write_keys('', tokens)
+        except Exception:
+            pass
+
         self.authenticate()
 
     def authenticate(self):
         try:
-            tokens = get_tokens(self.SERVICE_CODE)
-        except sq_exceptions.NoResultFound:
-            self.autorization_url({
-                'response_type': 'code',
-                'redirect_uri': 'http://localhost:5000/spotify/callback',
-                'scope': ', '.join([
-                    'playlist-modify-public',
-                    'playlist-read-collaborative',
-                    'playlist-read-private',
-                    'playlist-modify-private'
-                ])
-            })
-        else:
-            # atualiza o access_token se a autenticação der certo
-            self.session = self._get_access_token({
-                'code': tokens.code,
-                'grant_type': 'authorization_code',
-                'redirect_uri': 'http://localhost:5000/spotify/callback'
-            })
-            save_tokens(
-                self.SERVICE_CODE,
-                self.session.access_token_response.json())
+            tokens = read_pickle()
+
+            if not tokens['spotify']['code']:
+                self.autorization_url({
+                    'response_type': 'code',
+                    'redirect_uri': 'http://localhost:5000/spotify/callback',
+                    'scope': ', '.join([
+                        'playlist-modify-public',
+                        'playlist-read-collaborative',
+                        'playlist-read-private',
+                        'playlist-modify-private'
+                    ])
+                })
+            else:
+                # atualiza o access_token se a autenticação der certo
+                self.session = self._get_access_token({
+                    'code': tokens['spotify']['code'],
+                    'grant_type': 'authorization_code',
+                    'redirect_uri': 'http://localhost:5000/spotify/callback'
+                })
+
+                tokens['spotify'].update(
+                    self.session.access_token_response.json()) 
+                write_keys('', tokens)
+        except Exception:
+            pass
 
 
 class SpotifyRequests:
@@ -249,9 +256,11 @@ class SpotifyPlaylists(Playlist):
         playlist = self.search_playlist(name)
 
         if playlist:
-            tracks = self._diff_tracks(self.get_tracks(playlist['tracks']['href']), tracks)
+            tracks = self._diff_tracks(
+                self.get_tracks(playlist['tracks']['href']), tracks)
         else:
-            playlist = self.requests.post('/v1/me/playlists', {"name": name, "public": True})
+            playlist = self.requests.post(
+                '/v1/me/playlists', {"name": name, "public": True})
 
         tracks_cache = {}
 
@@ -270,7 +279,8 @@ class SpotifyPlaylists(Playlist):
                         matches.get('tracks', {}))
 
                     for match in matches_paginated:
-                        normalized_track, matches = self.match_track(track['name'], match['name'])
+                        normalized_track, matches = self.match_track(
+                            track['name'], match['name'])
 
                         if matches and match['name'] not in tracks_cache:
                             tracks_cache[normalized_track] = match['uri'] 
@@ -278,7 +288,8 @@ class SpotifyPlaylists(Playlist):
         if tracks_cache:
             for chunk_ids in chunks(list(tracks_cache.values()), step=100):
                 response = self.requests.post(
-                    f'v1/playlists/{playlist["id"]}/tracks', {'uris': chunk_ids})
+                    f'v1/playlists/{playlist["id"]}/tracks', 
+                    {'uris': chunk_ids})
 
             if response:
                 click.echo('A playlist foi copiada com sucesso')

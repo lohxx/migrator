@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import functools
+import pickle
 
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -14,14 +15,18 @@ db = SQLAlchemy(app)
 db.init_app(app)
 
 
+def read_pickle():
+    obj = {}
+    with open('tokens.pickle', 'rb') as f:
+        obj = pickle.load(f)
 
-def measure_time(fn):
-    @functools.wraps(fn)
-    def deco(*args, **kwargs):
-        start = time.time()
-        fn(*args, **kwargs)
-        end = time.time()
-    
+    return obj
+
+
+def write_keys(key, new_values):
+    with open('tokens.pickle', 'wb') as f:
+        pickle.dump(new_values, f, pickle.HIGHEST_PROTOCOL)
+
 
 @app.route('/deezer/callback')
 def deezer_callback():
@@ -41,12 +46,6 @@ def spotify_callback():
         SpotifyAuth().save_code_and_authenticate(request.args)
 
     return "token salvo"
-
-
-def init_db():
-    """ Inicializa o banco de dados """
-    from src.services.tokens import TokensManager
-    db.create_all()
 
 
 if __name__ == '__main__':

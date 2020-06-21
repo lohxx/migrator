@@ -9,12 +9,12 @@ import requests
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-from src.services.tokens import save_tokens, get_tokens
+from src import read_pickle, write_keys
+
 from src.services.interfaces import Playlist, ServiceAuth
 
 
 class DeezerAuth(ServiceAuth):
-    SERVICE_CODE = 2
 
     def __init__(self):
         self.session = requests.Session()
@@ -41,34 +41,43 @@ class DeezerAuth(ServiceAuth):
 
     def save_code_and_authenticate(self, response):
         code = response.get('code', '')
-        save_tokens(self.SERVICE_CODE, response)
+
+        try:
+            tokens = read_pickle()
+            tokens['deezer']['code'] = code
+            write_keys('', tokens)
+        except Exception:
+            pass
+
         self.authenticate(code)
 
     def authenticate(self, code=None):
-        try:
-            tokens = get_tokens(self.SERVICE_CODE)
+        tokens = read_pickle()
 
-            if not tokens.code:
-                raise ValueError
-
-            if tokens.code and not tokens.access_token:
-                response = self._get_access_token({
-                    'output': 'json',
-                    'code': code,
-                    'app_id': self.oauth.client_id,
-                    'secret': self.oauth.client_secret,
-                })
-                save_tokens(self.SERVICE_CODE, response)
-
-        except Exception:
+        if not tokens['deezer']['code']:
             self.autorization_url({
                 'app_id': self.oauth.client_id,
                 'perms': 'manage_library, offline_access',
                 'redirect_uri': 'http://localhost:5000/deezer/callback'
             })
-        else:
-            tokens = get_tokens(self.SERVICE_CODE)
-            self.session.params = {'access_token': tokens.access_token}
+            return
+
+        if tokens['deezer']['code'] and not tokens['deezer']['access_token']:
+            # Tenta pegar o access_token
+            response = self._get_access_token({
+                'output': 'json',
+                'app_id': self.oauth.client_id,
+                'secret': self.oauth.client_secret,
+                'code': tokens['deezer']['code'],
+            })
+
+            tokens['deezer']['access_token'] = response['access_token']
+            write_keys('', tokens)
+
+        elif tokens['deezer']['code'] and tokens['deezer']['access_token']:
+            # o token do deezer não expira
+            self.session.params = {
+                'access_token': tokens['deezer']['access_token']}
 
 
 class DeezerRequests:
@@ -82,7 +91,18 @@ class DeezerRequests:
         # para ler e modificar as playlists
         self.oauth.authenticate()
 
-    def paginate(self, response, params=None):
+    def paginate(self, response, params=None) -> list:
+        """
+        Junta todos os resultados paginados de um request.
+
+        Args:
+            response (dict): resposta devolvida pela api do Spotify.
+            params (dict, optional): [description]. Defaults to None.
+
+        Returns:
+            list: lista com todos os resultados do request.
+        """
+
         paginated_response = []
 
         if 'data' in response:
@@ -100,7 +120,17 @@ class DeezerRequests:
 
         return paginated_response
 
-    def get(self, endpoint, querystring=None):
+    def get(self, endpoint: str, querystring: dict = None):
+        """
+        [summary]
+
+        Args:
+            endpoint (str): [description]
+            querystring (dict, optional): [description]. Defaults to None.
+
+        Returns:
+            [type]: [description]
+        """    
         if self.oauth.base_url not in endpoint:
             endpoint = self.oauth.base_url+endpoint
         response = self.oauth.session.get(endpoint, params=querystring)
@@ -227,7 +257,7 @@ class DeezerPlaylists(Playlist):
 
         tracks_cache = {}
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=28) as executor:
             future_to_track = self.make_futures(executor, tracks)
 
             for future in concurrent.futures.as_completed(future_to_track):
