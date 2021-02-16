@@ -4,19 +4,17 @@ import click
 import time
 import os
 import pickle
+import threading
+import http.server
 
+from flask_script import Manager
 
+from src.utils import PickleHandler
 from src import app
 
 from src.services.deezer import DeezerPlaylists
 from src.services.spotify import SpotifyPlaylists
 from src.services.youtube import YoutubeService
-
-"""
-TODO
-    1. Buscar as musicas de maneira paralela
-    2. Ajustar o algoritimo de match entre as musicas
-"""
 
 
 SERVICES = {
@@ -25,27 +23,14 @@ SERVICES = {
     'youtube': YoutubeService
 }
 
-options = SERVICES.keys()
+OPTIONS = SERVICES.keys()
+pickle_handler = PickleHandler('tokens.pickle')
 
-
-class AuthenticationFail(Exception):
-    pass
 
 
 @click.group()
 def cli():
     pass
-
-
-def create_pickle_file():
-    if os.path.exists('./tokens.pickle'):
-        return
-
-    with open('tokens.pickle', 'wb') as f:
-        pickle.dump({
-            'deezer': {'code': None, 'access_token': None},
-            'spotify': {'code': None, 'access_token': None, 'refresh_token': None}
-        }, f, pickle.HIGHEST_PROTOCOL)
 
 
 def execute_copy(origin, destination, playlist_name):
@@ -61,15 +46,19 @@ def execute_copy(origin, destination, playlist_name):
 
 @cli.command()
 @click.option('--name', required=True)
-@click.option('--to-service', type=click.Choice(options), required=True)
-@click.option('--from-service', type=click.Choice(options), required=True)
+@click.option('--to-service', type=click.Choice(OPTIONS), required=True)
+@click.option('--from-service', type=click.Choice(OPTIONS), required=True)
 def copy(from_service, to_service, name):
-    create_pickle_file()
+    pickle_handler.write({
+        'deezer': {'code': None, 'access_token': None},
+        'spotify': {'code': None, 'access_token': None, 'refresh_token': None}
+    })
 
     if from_service == to_service:
-        print("O serviço de origem não pode ser o mesmo serviço de destino")
+        click.echo("O serviço de origem não pode ser o mesmo serviço de destino")
         return
 
+    import pdb; pdb.set_trace()
     origin_service = SERVICES.get(from_service)()
     destination_service = SERVICES.get(to_service)()
 

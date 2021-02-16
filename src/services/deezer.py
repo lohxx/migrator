@@ -9,9 +9,11 @@ import requests
 from rauth import OAuth2Service
 import sqlalchemy.orm.exc as sq_exceptions
 
-from src import read_pickle, write_keys
+from src.utils import PickleHandler
+from services.interfaces import Playlist, ServiceAuth
 
-from src.services.interfaces import Playlist, ServiceAuth
+
+pickle_manager = PickleHandler('tokens.pickle')
 
 
 class DeezerAuth(ServiceAuth):
@@ -43,16 +45,16 @@ class DeezerAuth(ServiceAuth):
         code = response.get('code', '')
 
         try:
-            tokens = read_pickle()
+            tokens = pickle_manager.read()
             tokens['deezer']['code'] = code
-            write_keys(tokens)
+            pickle_manager.write(tokens)
         except Exception:
             pass
 
         self.authenticate(code)
 
     def authenticate(self, code=None):
-        tokens = read_pickle()
+        tokens = pickle_manager.read()
 
         if not tokens['deezer']['code']:
             self.autorization_url({
@@ -72,7 +74,7 @@ class DeezerAuth(ServiceAuth):
             })
 
             tokens['deezer']['access_token'] = response['access_token']
-            write_keys(tokens)
+            pickle_manager.write(tokens)
 
             return
 
@@ -258,7 +260,7 @@ class DeezerPlaylists(Playlist):
 
         tracks_cache = {}
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=28) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_track = self.make_futures(executor, tracks)
 
             for future in concurrent.futures.as_completed(future_to_track):
@@ -270,7 +272,6 @@ class DeezerPlaylists(Playlist):
                     click.echo(exc)
                 else:
                     for match in matches:
-                        print(match['title'])
                         new_track, copy_track = self.match_track(
                             track['name'], match['title'])
 

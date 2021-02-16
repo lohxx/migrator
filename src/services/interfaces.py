@@ -8,7 +8,11 @@ import webbrowser
 from abc import ABC, abstractmethod
 from flask import request
 
-from src import read_pickle
+#from src import read_pickle
+
+from src.utils import PickleHandler
+
+pickle_manager = PickleHandler('tokens.pickle')
 
 
 class ServiceAuth(ABC):
@@ -28,7 +32,7 @@ class ServiceAuth(ABC):
                 decoder=json.loads,
             )
         except Exception:
-            tokens = read_pickle()
+            tokens = pickle_manager.read_pickle()
             session = self.oauth.get_auth_session(
                 decoder=json.loads,
                 data={
@@ -42,7 +46,6 @@ class ServiceAuth(ABC):
     def autorization_url(self, args):
         autorization_url = self.oauth.get_authorize_url(**args)
         webbrowser.open(autorization_url)
-
         return self
 
 

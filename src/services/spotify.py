@@ -6,14 +6,11 @@ import click
 
 from rauth import OAuth2Service
 
-from src import read_pickle, write_keys
-from src.services.interfaces import Playlist, ServiceAuth
+from utils import PickleHandler
+from services.interfaces import Playlist, ServiceAuth
 
 
-def chunks(lista, step=100): 
-    for i in range(0, len(lista), step):
-        yield lista[i: i+step]
-
+pickle_manager = PickleHandler('tokens.pickle')
 
 class SpotifyAuth(ServiceAuth):
     """
@@ -33,9 +30,9 @@ class SpotifyAuth(ServiceAuth):
 
     def save_code_and_authenticate(self, params):
         try:
-            tokens = read_pickle()
+            tokens = pickle_manager.read()
             tokens['spotify']['code'] = params['code']
-            write_keys(tokens)
+            pickle_manager.write(tokens)
         except Exception:
             pass
 
@@ -43,8 +40,7 @@ class SpotifyAuth(ServiceAuth):
 
     def authenticate(self):
         try:
-            tokens = read_pickle()
-
+            tokens = pickle_manager.read()
             if not tokens['spotify']['code']:
                 self.autorization_url({
                     'response_type': 'code',
@@ -63,13 +59,12 @@ class SpotifyAuth(ServiceAuth):
                     'grant_type': 'authorization_code',
                     'redirect_uri': 'http://localhost:5000/spotify/callback'
                 })
-
+                import pdb; pdb.set_trace()
                 tokens['spotify'].update(
                     self.session.access_token_response.json()) 
-                write_keys(tokens)
+                pickle_manager.write(tokens)
         except Exception:
             pass
-
 
 class SpotifyRequests:
     """
@@ -155,7 +150,6 @@ class SpotifyRequests:
             raise Exception(response.text)
 
         return response.json()
-
 
 class SpotifyPlaylists(Playlist):
     """
