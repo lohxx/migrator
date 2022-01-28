@@ -58,7 +58,6 @@ def copy(from_service, to_service, name):
         click.echo("O serviço de origem não pode ser o mesmo serviço de destino")
         return
 
-    import pdb; pdb.set_trace()
     origin_service = SERVICES.get(from_service)()
     destination_service = SERVICES.get(to_service)()
 
